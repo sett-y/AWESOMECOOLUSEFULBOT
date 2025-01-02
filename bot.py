@@ -17,9 +17,11 @@ async def load_extensions():
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py'):
             #cut off .py from filename
-            print(f"about to load extension")
-            await bot.load_extension(f"cogs.{filename[:-3]}")
-            print("extension loaded")
+            try:
+                await bot.load_extension(f"cogs.{filename[:-3]}")
+            except Exception as e:
+                print(f"problem loading extension: {e}")          
+    print("extensions loaded")
 
 
 @bot.event

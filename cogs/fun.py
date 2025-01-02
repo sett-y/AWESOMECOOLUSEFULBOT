@@ -1,8 +1,10 @@
 from discord.ext import commands
+import discord
 import python_weather
 import random
 import scripts.reminder as reminder
 from scripts.botimp import bot
+from PIL import Image, ImageDraw, ImageFont
 
 
 class Fun(commands.Cog):
@@ -74,6 +76,22 @@ class Fun(commands.Cog):
         message = await reminder.remind(reminderTime.content)
         print("sleep done")
         await ctx.send(f"{ctx.author.mention} {arg} {message[0]} {message[1]}")
+
+    @commands.command()
+    async def reversetext(self, ctx, *, msg):
+        msg = msg[::-1]
+        await ctx.send(msg)
+
+    @commands.command(description="adds impact font to an image")
+    async def impact(self, ctx, message: discord.Message):
+        dscImg = message.attachments[0].url
+        dscMsg = message.content
+        await ctx.send(f"{dscMsg} {dscImg}")
+        # prob need to pass as link or byte stream
+        #image = Image.open(dscImg)
+        #print(f"{image.format} {image.size}")
+
+        #ImageFont
 
 async def setup(bot):
     await bot.add_cog(Fun(bot))

@@ -4,7 +4,7 @@ import discord
 import os
 import scripts.ytmp3 as ytmp3
 import asyncio
-import wavelink
+#import wavelink
 import scripts.config as config
 from scripts.botimp import bot
 
@@ -67,20 +67,20 @@ class Music(commands.Cog):
         os.remove(os.getcwd() + "\\" + tmp + ".mp4")
 
 
-    @commands.command()
-    async def vcsong(ctx, url):
+    #@commands.command()
+    #async def vcsong(ctx, url):
         #channel = ctx.author.voice.channel
         #await channel.connect()
         
-        streamUrl = commands.vcmusic.vc(url)
-        print(streamUrl[:20])
+    #    streamUrl = commands.vcmusic.vc(url)
+    #    print(streamUrl[:20])
         #await ctx.send(streamUrl)
-        try:
-            node: wavelink.Node = wavelink.Node(uri=config.lavalink_uri, password=config.lavalink_password, client=bot)
-        except Exception as e:
-            print(f"exception   _  adfasdkf{e}")
-        print("wavelink node initialized")
-        await wavelink.Pool.connect(nodes=[node], cache_capacity=100)
+    #    try:
+    #        node: wavelink.Node = wavelink.Node(uri=config.lavalink_uri, password=config.lavalink_password, client=bot)
+    #    except Exception as e:
+    #        print(f"exception   _  adfasdkf{e}")
+    #    print("wavelink node initialized")
+    #    await wavelink.Pool.connect(nodes=[node], cache_capacity=100)
 
         #vcPlayer = await wavelink.Player(client=bot, nodes=wnode)
 

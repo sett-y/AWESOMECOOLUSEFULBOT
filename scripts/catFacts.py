@@ -8,8 +8,8 @@ async def get_fact():
         try:
         #launch browser
             browser = await p.chromium.launch(headless=True)
-        except:
-            print("unable to launch browser")
+        except Exception as e:
+            print(f"unable to launch browser: {e}")
         page = await browser.new_page()
         if await page.goto(url):
             print("scraping page...")
