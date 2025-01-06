@@ -1,7 +1,5 @@
 import google.generativeai as genai
 import scripts.config
-import discord
-
 import requests
 import json
 
@@ -11,11 +9,12 @@ import json
 # implement clearHistory function to clear a specific server's prompt history (depopulate list)
 # ctx.guild.id
 #TODO: multiple messages for messages that are over 2k chars
-#TODO: summarize recent messages command (might need to write in ai.py)
 #TODO: owner only command that switches llm api
+#TODO: image analysis, maybe add to prompt instead of new command
+#TODO: global prompt, adds prompt to all history lists
 
 contextList = []
-promptNum = 20
+promptNum = 30
 initialExplanation = "You are the discord bot \"AWESOMECOOLUSEFULBOT\". Below is the \
 history of the recent user prompts along with your responses. While understanding \
 the context of the previous text, analyze and respond to \
@@ -79,7 +78,7 @@ async def asciiArt(prompt) -> str:
     return response.text
 
 async def genericPrompt(ctx, prompt) -> str:
-    model_config = genai.GenerationConfig(temperature=1.5)
+    model_config = genai.GenerationConfig(temperature=1.8)
     
     genai.configure(api_key=scripts.config.genai_token)
     model = genai.GenerativeModel("gemini-2.0-flash-exp", generation_config=model_config)
@@ -147,3 +146,17 @@ async def oppositePrompt(prompt) -> str:
 async def promptHistory() -> str:
     history = '\n'.join(str(x) for x in contextList)
     return history
+
+async def imageEdit(prompt):
+    pass
+
+async def summarize(history):
+    #model_config = genai.GenerationConfig()
+    genai.configure(api_key=scripts.config.genai_token)
+    model = genai.GenerativeModel("gemini-2.0-flash-exp")
+
+    response = await model.generate_content_async(f"[Summarize the following discord chat messages. \
+    You should not state what you are doing, only deliver the summarized output. Usernames are included \
+    before messages, so you can tell different users apart.]\n {history}")
+    print("response generated")
+    return response.text

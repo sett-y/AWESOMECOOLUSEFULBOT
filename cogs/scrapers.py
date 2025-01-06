@@ -1,4 +1,5 @@
 from discord.ext import commands
+import discord
 import scripts.catFacts as catFacts
 import scripts.scraper as scraper
 import asyncio
@@ -20,17 +21,26 @@ class Scrapers(commands.Cog):
 
 
     @commands.command(description="displays info about dota match")
-    async def display_match(self, ctx, url):
-        await ctx.send("fetching match...")
-        html = await scraper.call_scraper("get_match_info", url)
-        await ctx.send(html[0])
+    async def display_match(self, ctx): # add url back
+        #await ctx.send("fetching match...")
+        #html = await scraper.call_scraper("get_match_info", url)
+
+        thumbnail = discord.File("images/dotabuff.png", filename="dotabuff.png")
+        embed = discord.Embed(title="bruh")
+        embed.add_field(name="test 1", value="tasdfdfjlasdjf")
+        embed.add_field(name="test 2", value="aldfjaldskjfd")
+        embed.set_thumbnail(url="attachment://dotabuff.png")
+
+        await ctx.send(file=thumbnail, embed=embed)
+
+        """await ctx.send(html[0])
         for h in html[1]:
             await ctx.send(h)
             asyncio.sleep(0.2)
         await ctx.send(html[2])
         for h in html[3]:
             await ctx.send(h)
-            asyncio.sleep(0.2)
+            asyncio.sleep(0.2)"""
 
         #PIL code here
         

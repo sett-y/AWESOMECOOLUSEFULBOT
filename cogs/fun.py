@@ -82,6 +82,10 @@ class Fun(commands.Cog):
         msg = msg[::-1]
         await ctx.send(msg)
 
+    @commands.command()
+    async def schoolalarm(self, ctx):
+        await ctx.send("https://cdn.discordapp.com/attachments/1163949682427433030/1324551380135837817/schoolalarm.gif?ex=67789019&is=67773e99&hm=f840c9dcb64160f64e4f0c48d3a2d51c23051ec04412c0bd29af6874249c50b2&")
+
     @commands.command(description="adds impact font to an image")
     async def impact(self, ctx, message: discord.Message):
         dscImg = message.attachments[0].url
