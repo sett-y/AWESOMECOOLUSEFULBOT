@@ -69,10 +69,12 @@ class AI(commands.Cog):
 
     async def get_last_messages(self, ctx, n):
         messages = []
-        async for message in ctx.channel.history(limit=int(n)):
+        async for msg in ctx.channel.history(limit=int(n)):
             # append names
-            messageWithName = f"{ctx.author.name}: {message.content}"
+            messageWithName = f"{msg.author.name}: {msg.content}"
             messages.append(messageWithName)
+        #await ctx.send(messages)
+        messages.reverse()
         return messages
 
     @commands.command() 
