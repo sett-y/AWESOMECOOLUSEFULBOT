@@ -6,10 +6,22 @@ import os
 import sys
 import wavelink
 from scripts.botimp import bot
-#import easy_pil
-#import audioop
-#import logging
-#import subprocess
+import logging
+
+# important functions: ctx.channel | ctx.channel.history
+# history contains messages
+# to get message content from ctx.channel.history, use .content
+
+# outputs error logs to discord.log file
+logging.basicConfig(level=logging.INFO)
+#logger = logging.getLogger('discord')
+#logger.setLevel(logging.DEBUG)
+#handler = logging.FileHandler(filename='discord.log', encoding='uft-8', mode='w')
+#handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+#logger.addHandler(handler)
+
+intents = discord.Intents.default()
+intents.message_content = True
 
 hawk = "hawk"
 
@@ -27,7 +39,7 @@ async def load_extensions():
 @bot.event
 async def on_ready():
     print(f"logged in as {bot.user}")
-    await bot.change_presence(game=discord.Game(name="shut up Man", platform="yomama", type=1))
+    #await bot.change_presence(game=discord.Game(name="shut up Man", platform="yomama", type=1))
 
 
 @bot.command(description="shuts down bot (owner only)")

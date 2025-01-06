@@ -1,4 +1,5 @@
 from discord.ext import commands
+import discord
 import scripts.api as api
 
 
@@ -66,9 +67,40 @@ class AI(commands.Cog):
             history = history[:2000]
         await ctx.send(history)
 
+    async def get_last_messages(self, ctx, n):
+        messages = []
+        async for message in ctx.channel.history(limit=int(n)):
+            # append names
+            messageWithName = f"{ctx.author.name}: {message.content}"
+            messages.append(messageWithName)
+        return messages
+
+    @commands.command() 
+    async def summarize(self, ctx, n: int):
+        n = int(n)
+        # check for valid user input
+        if not isinstance(n, int) or n < 0:
+            await ctx.send("the summarize command's parameter can only be a positive integer.")
+            return
+
+        messages = await self.get_last_messages(ctx, n)
+        print("messages scraped")
+
+        history = '\n'.join(str(x) for x in messages)
+
+        await ctx.send("generating response...")
+        response = await api.summarize(history)
+
+        await ctx.send(response)
+
+    @commands.command() # gemini image editing
+    async def image(self, ctx, *, arg):
+        pass
+
     @commands.command()
-    async def summarize(self, ctx, numMsg):
-        await ctx.send(numMsg)
+    async def voteclear(self, ctx):
+        pass
+        
 
 async def setup(bot):
     await bot.add_cog(AI(bot))

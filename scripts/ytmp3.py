@@ -48,22 +48,20 @@ def yt2mp4(url):
     filename = san + ".mp4"
     yt4title = san
     
-    try:
-        #mp4 = vidInfo.streams.get_highest_resolution() #filter(file_extension="mp4")#.first()
-        mp4 = vidInfo.streams.filter(file_extension="mp4").first()
-        if not mp4:
-            print("no valid stream")
-        else:
-            print("stream success")
-    except Exception as e:
-        print(e)
+    
+    #mp4 = vidInfo.streams.get_highest_resolution() #filter(file_extension="mp4")#.first()
+    mp4 = vidInfo.streams.filter(file_extension="mp4").first()
+    
+    if mp4:
+        print("stream success")
+    else:
+        print("no valid stream")
 
-    try:
+    
+    if mp4:
         download = mp4.download(output_path=output_path, filename = "vid.mp4")
-        if not download:
-            print("download failed")
-    except Exception as e:
-        print(f"download error: {e}")
+    else:
+        print("no stream found")
 
     newfilepath = os.path.join(output_path, filename)
     if os.path.exists(newfilepath):
