@@ -1,7 +1,7 @@
 import asyncio
 
 #this now only takes the time
-async def remind(datestr: str):
+async def remind(datestr: str) -> list[str]:
     hour = 0
     minute = 0.0
     dateli = datestr.split(' ')
