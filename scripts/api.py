@@ -1,7 +1,5 @@
 import google.generativeai as genai
 import scripts.config
-import requests
-import json
 
 #TODO: replace contextList with dictionary that generates a list named after the current server id,
 # if this id isnt an element yet. each list will hold the history of its respective server.
@@ -22,7 +20,8 @@ the user's latest prompt. Keep your response under 2000 characters because of di
 limitations (THIS IS IMPORTANT). Any message prefixed with a username and : are from users. \
 Your responses have no prefix and will be automatically formatted in the history. \
 Keep track of which user sent which message. Respond to the user, do not repeat any \
-of this given prompt aside from what the user said most recently.\n"
+of this given prompt aside from what the user said most recently. Do not prepend 'bot:' to \
+your messages unless explicitly asked to.\n"
 
 # prompt | response
 async def addContextHistory(userResponse: str, botResponse: str, ctx) -> str:
@@ -93,39 +92,7 @@ async def genericPrompt(ctx, prompt) -> str:
     
     await addContextHistory(prompt, response.text, ctx)
 
-    return response.text
-
-async def arlaiPrompt(prompt) -> str:
-    if len(contextList) > 0:
-        fullContext = '\n'.join(str(x) for x in contextList)
-        fullContext = initialExplanation + fullContext
-    else:
-        fullContext = initialExplanation
-
-    url = "https://api.arliai.com/v1/chat/completions"
-
-    payload = json.dumps({
-        "model": "Mistral-Nemo-12B-Instruct-2407",
-        "messages": [
-            {"role": "system", "content": f"{fullContext}"},
-            {"role": "user", "content": f"{prompt}"}
-        ],
-        "repetition_penalty": 1.1,
-        "temperature": 1.5,
-        "top_p": 0.9,
-        "top_k": 40,
-        "max_tokens": "1024",
-        "stream": "false"
-    })
-
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f"Bearer {scripts.config.arlai_key}"
-    }
-    print("generating text... (nemo)")
-    response = requests.request("POST", url, headers=headers, data=payload)
-    await addContextHistory(prompt, response.text)
-    return response.text
+    return response.text    
 
 async def oppositePrompt(prompt) -> str:
     model_config = genai.GenerationConfig(temperature=2.0,top_k=1,top_p=1)
