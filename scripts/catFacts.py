@@ -3,7 +3,7 @@ from playwright.async_api import async_playwright
 
 url = "https://catfact.ninja/fact"
 
-async def get_fact():
+async def get_fact() -> str:
     async with async_playwright() as p:
         try:
         #launch browser
