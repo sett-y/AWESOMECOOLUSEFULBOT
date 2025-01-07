@@ -7,6 +7,9 @@ import sys
 import wavelink
 from scripts.botimp import bot
 import logging
+import random
+
+#TODO: custom prefixes (per server)
 
 # important functions: ctx.channel | ctx.channel.history
 # history contains messages
@@ -19,9 +22,6 @@ logging.basicConfig(level=logging.INFO)
 #handler = logging.FileHandler(filename='discord.log', encoding='uft-8', mode='w')
 #handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 #logger.addHandler(handler)
-
-intents = discord.Intents.default()
-intents.message_content = True
 
 hawk = "hawk"
 
@@ -87,9 +87,15 @@ async def commandlist(ctx):
 
 
 @bot.event
-async def on_message(message):
-    #apparently necessessary if i override the default on_message
-    await bot.process_commands(message)
+async def on_message(message: discord.Message):
+
+    reactChance = random.random()
+
+    # tuple of server emojis
+    serverEmojis = message.guild.emojis
+    if reactChance < 0.05:
+        randomEmoji = random.choice(serverEmojis)
+        await message.add_reaction(randomEmoji)
 
     if message.author == bot.user:
         return
@@ -100,6 +106,8 @@ async def on_message(message):
     if hawk.lower() in message.content.lower():
         await message.channel.send("tuah")
 
+    #apparently necessessary if i override the default on_message
+    await bot.process_commands(message)
 
 @bot.event
 async def on_guild_emojis_update(guid, before, after):
@@ -118,6 +126,5 @@ async def main():
 
 
 asyncio.run(main())
-
 
 #TODO: add impact font to images
