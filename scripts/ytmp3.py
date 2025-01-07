@@ -4,7 +4,7 @@ import os
 yttitle = ""
 yt4title = ""
 
-def yt2mp3(url):
+def yt2mp3(url) -> str:
     global yttitle
     output_path = os.getcwd()
 
@@ -34,7 +34,7 @@ def yt2mp3(url):
     return newfilepath
 
 
-def yt2mp4(url):
+def yt2mp4(url) -> str:
     global yt4title
     output_path = os.getcwd()
 
