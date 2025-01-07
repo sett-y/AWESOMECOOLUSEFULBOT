@@ -1,5 +1,7 @@
 from discord.ext import commands
+import discord
 import scripts.api as api
+import os
 
 
 class AI(commands.Cog):
@@ -28,11 +30,13 @@ class AI(commands.Cog):
         except Exception as e:
             print(e)
         if len(response) > 2000:
-            print("response is over the 2000 character limit, splitting string")
-            response1 = response[:2000]
-            response2 = response[2000:]
-            await ctx.send(response1)
-            await ctx.send(response2)
+            print("response over 2000 character limit, writing to file")
+            # load response into txt file
+            with open("response.txt", "w") as file:
+                file.write(response)
+            
+            await ctx.send(file=discord.File("response.txt"))
+            os.remove(f"{os.getcwd()}\\response.txt")
         else:
             print("response generated")
             await ctx.send(response)
@@ -53,8 +57,13 @@ class AI(commands.Cog):
             await ctx.send("no prompt history available!")
             return
         if len(history) > 2000:
-            history = history[:2000]
-        await ctx.send(history)
+            with open("history.txt", "w") as file:
+                file.write(history)
+            
+            await ctx.send(file=discord.File("history.txt"))
+            os.remove(f"{os.getcwd}\\history.txt")
+        else:
+            await ctx.send(history)
 
     async def get_last_messages(self, ctx: commands.Context, n):
         messages = []
