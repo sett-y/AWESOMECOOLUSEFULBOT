@@ -8,21 +8,21 @@ class AI(commands.Cog):
         self.bot = bot
 
     @commands.command(name="fortune", description="prompt google gemini to generate a fortune")
-    async def fortunecookie(self, ctx):
+    async def fortunecookie(self, ctx: commands.Context):
         await ctx.send("reading fortune...")
         fortune = await api.fortune()
         print("generated")
         await ctx.send(f"🥠 {fortune} 🥠")
 
     @commands.command(name="ascii", description="generate ascii art based on user prompt")
-    async def asciiGen(self, ctx, *, arg):
+    async def asciiGen(self, ctx: commands.Context, *, arg):
         await ctx.send("generating ascii...")
         ascii = await api.asciiArt(arg)
         print("generated")
         await ctx.send(f"```{ascii}```")
 
     @commands.command(name="prompt", description="generate a response based on prompt given")
-    async def prompt(self, ctx, *, arg):
+    async def prompt(self, ctx: commands.Context, *, arg):
         await ctx.send("generating response...")
         try:
             response = await api.genericPrompt(ctx, arg)
@@ -39,7 +39,7 @@ class AI(commands.Cog):
             await ctx.send(response)
 
     @commands.command(name="tempprompt")
-    async def tempPrompt(self, ctx, *, arg):
+    async def tempPrompt(self, ctx: commands.Context, *, arg):
         await ctx.send("generating response... (arlai)")
         response = await api.arlaiPrompt(arg)
         if len(response) > 2000:
@@ -49,7 +49,7 @@ class AI(commands.Cog):
         await ctx.send(response)
 
     @commands.command()
-    async def antiprompt(self, ctx, *, arg):
+    async def antiprompt(self, ctx: commands.Context, *, arg):
         await ctx.send("generating EVIL response...")
         response = await api.oppositePrompt(arg)
         print("response generated")
@@ -57,7 +57,7 @@ class AI(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def history(self, ctx):
+    async def history(self, ctx: commands.Context):
         history = await api.promptHistory()
         if not history:
             print("no prompt history available!")
@@ -67,7 +67,7 @@ class AI(commands.Cog):
             history = history[:2000]
         await ctx.send(history)
 
-    async def get_last_messages(self, ctx, n):
+    async def get_last_messages(self, ctx: commands.Context, n):
         messages = []
         async for msg in ctx.channel.history(limit=int(n)):
             # append names
@@ -78,7 +78,7 @@ class AI(commands.Cog):
         return messages
 
     @commands.command() 
-    async def summarize(self, ctx, n: int):
+    async def summarize(self, ctx: commands.Context, n: int):
         n = int(n)
         # check for valid user input
         if not isinstance(n, int) or n < 0:
@@ -96,11 +96,11 @@ class AI(commands.Cog):
         await ctx.send(response)
 
     @commands.command() # gemini image editing
-    async def image(self, ctx, *, arg):
+    async def image(self, ctx: commands.Context, *, arg):
         pass
 
     @commands.command()
-    async def voteclear(self, ctx):
+    async def voteclear(self, ctx: commands.Context):
         pass
         
 

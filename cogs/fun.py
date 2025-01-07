@@ -6,20 +6,21 @@ import scripts.reminder as reminder
 from scripts.botimp import bot
 from PIL import Image, ImageDraw, ImageFont
 
+#TODO: bot randomly reacts to messages with random emoji
 
 class Fun(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @commands.command(description="repeats user's message")
-    async def echo(self, ctx, *, arg):
+    async def echo(self, ctx: commands.Context, *, arg):
         #TODO: needs perms
         await ctx.message.delete()
         await ctx.send(arg)
         #await ctx.send(type(arg)) #arg = str
 
     @commands.command(description="displays weather stats using a wttr.in wrapper")
-    async def weather(self, ctx, *, arg):
+    async def weather(self, ctx: commands.Context, *, arg):
         tempEmoji = ""
         humEmoji = ""
         async with python_weather.Client(unit=python_weather.IMPERIAL) as client:
@@ -33,7 +34,7 @@ class Fun(commands.Cog):
 
 
     @commands.command(description="troll face")
-    async def troll(self, ctx):
+    async def troll(self, ctx: commands.Context):
         await ctx.message.delete()
         #messages can be assigned to variables to interact with them later
         #await ctx.send() returns a message object
@@ -41,7 +42,7 @@ class Fun(commands.Cog):
         await botmsg.delete()
 
     @commands.command(description="sends a random cool website")
-    async def website(self, ctx):
+    async def website(self, ctx: commands.Context):
         websites = []
         with open("websites.txt", 'r') as file:
             for website in file:
@@ -50,7 +51,7 @@ class Fun(commands.Cog):
             await ctx.send(w)
 
     @commands.command(name="reminder", description="send reminder msg, then enter numbers in subsequent msg:<hours> <minutes>")
-    async def reminderTimer(self, ctx, *, arg):
+    async def reminderTimer(self, ctx: commands.Context, *, arg):
         tmpMinutes = 0
         tmpHours = 0
 
@@ -78,16 +79,16 @@ class Fun(commands.Cog):
         await ctx.send(f"{ctx.author.mention} {arg} {message[0]} {message[1]}")
 
     @commands.command()
-    async def reversetext(self, ctx, *, msg):
+    async def reversetext(self, ctx: commands.Context, *, msg):
         msg = msg[::-1]
         await ctx.send(msg)
 
     @commands.command()
-    async def schoolalarm(self, ctx):
+    async def schoolalarm(self, ctx: commands.Context):
         await ctx.send("https://cdn.discordapp.com/attachments/1163949682427433030/1324551380135837817/schoolalarm.gif?ex=67789019&is=67773e99&hm=f840c9dcb64160f64e4f0c48d3a2d51c23051ec04412c0bd29af6874249c50b2&")
 
     @commands.command(description="adds impact font to an image")
-    async def impact(self, ctx, message: discord.Message):
+    async def impact(self, ctx: commands.Context, message: discord.Message):
         dscImg = message.attachments[0].url
         dscMsg = message.content
         await ctx.send(f"{dscMsg} {dscImg}")
