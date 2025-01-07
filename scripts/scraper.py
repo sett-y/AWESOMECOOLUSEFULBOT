@@ -25,10 +25,6 @@ async def call_scraper(funcStr, url):
     #use regex
 
     async with ClientSession(headers=headers) as session:
-        #ghetto enum
-        player1,player2,player3,player4,player5,player6,\
-        player7,player8,player9,player10=0,1,2,3,4,5,6,7,8,9
-
 
         async def player_id_to_url(id):
             pass
