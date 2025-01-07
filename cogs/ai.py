@@ -1,5 +1,4 @@
 from discord.ext import commands
-import discord
 import scripts.api as api
 
 
@@ -38,16 +37,6 @@ class AI(commands.Cog):
             print("response generated")
             await ctx.send(response)
 
-    @commands.command(name="tempprompt")
-    async def tempPrompt(self, ctx: commands.Context, *, arg):
-        await ctx.send("generating response... (arlai)")
-        response = await api.arlaiPrompt(arg)
-        if len(response) > 2000:
-            print("response is over the 2000 character limit, truncating")
-            response = response[:2000]
-        print("response generated")
-        await ctx.send(response)
-
     @commands.command()
     async def antiprompt(self, ctx: commands.Context, *, arg):
         await ctx.send("generating EVIL response...")
@@ -71,9 +60,12 @@ class AI(commands.Cog):
         messages = []
         async for msg in ctx.channel.history(limit=int(n)):
             # append names
+            #if ">summarize" in msg or "bcsummarize" in msg:
+            #    continue
             messageWithName = f"{msg.author.name}: {msg.content}"
             messages.append(messageWithName)
         #await ctx.send(messages)
+        messages.pop()
         messages.reverse()
         return messages
 
