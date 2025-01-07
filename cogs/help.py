@@ -6,7 +6,7 @@ class Help(commands.Cog):
         self.bot = bot
 
     @commands.command()
-    async def helpswitch(self, ctx, arg):
+    async def helpswitch(self, ctx: commands.Context, arg):
         #declare embed here and append description via cases
         match arg:
             case "prompt":

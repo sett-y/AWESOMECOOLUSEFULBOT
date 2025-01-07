@@ -8,6 +8,7 @@ import asyncio
 import scripts.config as config
 from scripts.botimp import bot
 
+#TODO: for files that go over upload limit, upload to temp file hosting service and send link
 
 class Music(commands.Cog):
     def __init__(self, bot):
@@ -21,7 +22,7 @@ class Music(commands.Cog):
         return strUrl
     
     @commands.command(name="mp3", description="takes a youtube url and sends the audio as an mp3")
-    async def mp3(self, ctx, url):
+    async def mp3(self, ctx: commands.Context, url):
         try:
             file_path = await asyncio.to_thread(ytmp3.yt2mp3, url)
             print(f"file path: {file_path}")
@@ -45,7 +46,7 @@ class Music(commands.Cog):
 
 
     @commands.command(name="mp4", description="takes a youtube url and sends video as mp4")
-    async def mp4(self, ctx, url):
+    async def mp4(self, ctx: commands.Context, url):
         try:
             file_path = await asyncio.to_thread(ytmp3.yt2mp4, url)
             print(f"file path: {file_path}")

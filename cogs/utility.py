@@ -6,7 +6,7 @@ class Util(commands.Cog):
         self.bot = bot
 
     @commands.command(description="fetches server picture")
-    async def servpic(self, ctx):
+    async def servpic(self, ctx: commands.Context):
         pass
 
     @commands.command(description="displays user join date")
@@ -17,17 +17,17 @@ class Util(commands.Cog):
         #await ctx.send(member._client_status)
 
     @commands.command(description="sends link to user pfp, can specify user with a ping")
-    async def pfp(self, ctx, member: discord.Member = None):
+    async def pfp(self, ctx: commands.Context, member: discord.Member = None):
         member = member or ctx.author
         pfp = member.avatar.url
         await ctx.send(pfp)
 
     @commands.command()
-    async def delivery_notif(self, ctx, url):
+    async def delivery_notif(self, ctx: commands.Context, url):
         pass
 
     @commands.command()
-    async def binary(self, ctx, num: int):
+    async def binary(self, ctx: commands.Context, num: int):
         binary = []
         for i in range(31, -1, -1):
             k = num >> i
