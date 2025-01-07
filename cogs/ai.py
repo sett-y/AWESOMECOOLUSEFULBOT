@@ -32,7 +32,7 @@ class AI(commands.Cog):
         if len(response) > 2000:
             print("response over 2000 character limit, writing to file")
             # load response into txt file
-            with open("response.txt", "w") as file:
+            async with open("response.txt", "w") as file:
                 file.write(response)
             
             await ctx.send(file=discord.File("response.txt"))
@@ -57,7 +57,7 @@ class AI(commands.Cog):
             await ctx.send("no prompt history available!")
             return
         if len(history) > 2000:
-            with open("history.txt", "w") as file:
+            async with open("history.txt", "w") as file:
                 file.write(history)
             
             await ctx.send(file=discord.File("history.txt"))
@@ -65,15 +65,11 @@ class AI(commands.Cog):
         else:
             await ctx.send(history)
 
-    async def get_last_messages(self, ctx: commands.Context, n):
+    async def get_last_messages(self, ctx: commands.Context, n) -> list[str]:
         messages = []
         async for msg in ctx.channel.history(limit=int(n)):
-            # append names
-            #if ">summarize" in msg or "bcsummarize" in msg:
-            #    continue
             messageWithName = f"{msg.author.name}: {msg.content}"
             messages.append(messageWithName)
-        #await ctx.send(messages)
         messages.pop()
         messages.reverse()
         return messages
