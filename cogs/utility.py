@@ -7,7 +7,7 @@ class Util(commands.Cog):
 
     @commands.command(description="fetches server picture")
     async def servpic(self, ctx: commands.Context):
-        pass
+        ctx.send(ctx.guild.icon)
 
     @commands.command(description="displays user join date")
     async def joinDate(self, ctx, member: discord.Member = None):
@@ -27,17 +27,9 @@ class Util(commands.Cog):
         pass
 
     @commands.command()
-    async def binary(self, ctx: commands.Context, num: int):
-        binary = []
-        for i in range(31, -1, -1):
-            k = num >> i
-            if (k&i):
-                binary.append(1)
-            else:
-                binary.append(0)
-        print(binary)
-        await ctx.send(str(binary))
+    async def google(self, ctx: commands.Context):
+        pass
 
 
-async def setup(bot):
-    await bot.add_cog(Util(bot))
+def setup(bot):
+    bot.add_cog(Util(bot))
