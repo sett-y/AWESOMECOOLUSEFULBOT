@@ -48,17 +48,17 @@ async def shutdown(ctx):
     print("shutting down")
     await ctx.send("shutting down")
     try:
-        await wavelink.Pool.close()
+        #await wavelink.Pool.close()
         await bot.close()
         print("shut down complete")
-    except:
-        print("error while shutting down")
+    except Exception as e:
+        print(f"error while shutting down: {e}")
 
     
 @bot.command(description="restarts bot (owner only)")
 @commands.is_owner()
 async def restart(ctx):
-    await wavelink.Pool.close()
+    #await wavelink.Pool.close()
     print("restarting")
     embed = discord.Embed(title=":white_check_mark: restarting :white_check_mark:")
     await ctx.send(embed=embed)
