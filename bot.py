@@ -30,9 +30,9 @@ async def load_extensions():
         if filename.endswith('.py'):
             #cut off .py from filename
             try:
-                await bot.load_extension(f"cogs.{filename[:-3]}")
+                bot.load_extension(f"cogs.{filename[:-3]}")
             except Exception as e:
-                print(f"problem loading extension: {e}")          
+                print(f"problem loading extension: {e}")
     print("extensions loaded")
 
 
@@ -62,7 +62,6 @@ async def restart(ctx):
     print("restarting")
     embed = discord.Embed(title=":white_check_mark: restarting :white_check_mark:")
     await ctx.send(embed=embed)
-    #os.system("clear")
     os.execv(sys.executable, ['python'] + sys.argv)
 
 
@@ -88,7 +87,6 @@ async def commandlist(ctx):
 
 @bot.event
 async def on_message(message: discord.Message):
-
     reactChance = random.random()
 
     # tuple of server emojis
@@ -103,20 +101,20 @@ async def on_message(message: discord.Message):
     if message.content.startswith("bruh"):
         await message.channel.send("shut up")
     
-    if hawk.lower() in message.content.lower():
+    if hawk in message.content.lower():
         await message.channel.send("tuah")
+
+    #await message.channel.send(message.content)
 
     #apparently necessessary if i override the default on_message
     await bot.process_commands(message)
 
+
 @bot.event
-async def on_guild_emojis_update(guid, before, after):
+async def on_guild_emojis_update(guild, before, after):
     newEmoji = after[-1]
-    for guild in bot.guilds:
-        for channel in guild.text_channels:
-            if channel.permissions_for(guild.me).send_messages:
-                await channel.send(newEmoji)
-                break
+    channel = guild.system_channel
+    await channel.send(newEmoji)
 
 
 async def main():

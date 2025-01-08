@@ -6,7 +6,6 @@ import scripts.config
 # remember to append a letter/underscore to list name.
 # implement clearHistory function to clear a specific server's prompt history (depopulate list)
 # ctx.guild.id
-#TODO: multiple messages for messages that are over 2k chars
 #TODO: owner only command that switches llm api
 #TODO: image analysis, maybe add to prompt instead of new command
 #TODO: global prompt, adds prompt to all history lists
