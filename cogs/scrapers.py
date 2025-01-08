@@ -18,7 +18,6 @@ class Scrapers(commands.Cog):
         except:
             print("error while scraping page")
 
-
     @commands.command(description="displays info about dota match")
     async def display_match(self, ctx: commands.Context): # add url back to params
         #await ctx.send("fetching match...")
@@ -47,8 +46,6 @@ class Scrapers(commands.Cog):
 
         #PIL code here
         
-
-
     @commands.command(description="displays info about user dotabuff profile")
     async def display_profile(ctx: commands.Context, url):
         await ctx.send("fetching profile...")
@@ -58,5 +55,5 @@ class Scrapers(commands.Cog):
             #await ctx.send(h)
 
 
-async def setup(bot):
-    await bot.add_cog(Scrapers(bot))
+def setup(bot):
+    bot.add_cog(Scrapers(bot))

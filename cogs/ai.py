@@ -101,5 +101,5 @@ class AI(commands.Cog):
         pass
         
 
-async def setup(bot):
-    await bot.add_cog(AI(bot))
+def setup(bot):
+    bot.add_cog(AI(bot))
