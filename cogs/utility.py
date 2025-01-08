@@ -16,8 +16,8 @@ class Util(commands.Cog):
         Server Joined: {member.joined_at}")
         #await ctx.send(member._client_status)
 
-    @commands.command(description="sends link to user pfp, can specify user with a ping")
-    async def pfp(self, ctx: commands.Context, member: discord.Member = None):
+    @commands.command(aliases=["pfp","avatar"], description="sends link to user pfp, can specify user with a ping")
+    async def get_avatar(self, ctx: commands.Context, member: discord.Member = None):
         member = member or ctx.author
         pfp = member.avatar.url
         await ctx.send(pfp)

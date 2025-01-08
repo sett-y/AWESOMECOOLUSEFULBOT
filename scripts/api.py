@@ -53,13 +53,14 @@ async def fortune() -> str:
 
     # add prompt to queue, then flatten queue into string which will be passed to generate_content_async
     response = await model.generate_content_async(prompt)
-    await addContextHistory(prompt, response.text) # .text is important!
+    #await addContextHistory(prompt, response.text) # .text is important!
 
-    fullContext = '\n'.join(str(x) for x in contextList)
+    #fullContext = '\n'.join(str(x) for x in contextList)
     # add sentence explaining how gemini should interpret this large string
-    fullContext = initialExplanation + fullContext
+    #fullContext = initialExplanation + fullContext
 
-    return fullContext
+    #return fullContext
+    return response.text
 
 # main difference here is prompt variable is added to deque along with preset prompt
 async def asciiArt(prompt) -> str:
