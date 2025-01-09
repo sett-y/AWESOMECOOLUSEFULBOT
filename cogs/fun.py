@@ -39,8 +39,8 @@ class Fun(commands.Cog):
         botmsg = await ctx.send("https://tenor.com/view/troll-troll-face-ragememe-rageface-trolling-gif-7857576152495722734")
         await botmsg.delete()
 
-    @commands.command(description="sends a random cool website", aliases=["website","site"])
-    async def websiteCmd(self, ctx: commands.Context):
+    @commands.command(description="sends a random cool website", aliases=["site"])
+    async def website(self, ctx: commands.Context):
         websites = []
         with open("websites.txt", 'r') as file:
             for website in file:
