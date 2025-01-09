@@ -66,6 +66,7 @@ class Scrapers(commands.Cog):
         embed.add_field(name='Title', value=data[0])
         embed.add_field(name="Player Count", value=data[1])
         embed.add_field(name="Link", value=f'[link]({data[3]})')
+        embed.add_field(name="Description", value=data[4])
         embed.set_thumbnail(url=data[2]) 
         await ctx.send(embed=embed)
 
