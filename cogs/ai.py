@@ -22,8 +22,8 @@ class AI(commands.Cog):
         print("generated")
         await ctx.send(f"```{ascii}```")
 
-    @commands.command(name="prompt", description="generate a response based on prompt given")
-    async def prompt(self, ctx: commands.Context, *, arg):
+    @commands.command(aliases=["prompt","gemini","ai"], description="generate a response based on prompt given")
+    async def promptGemini(self, ctx: commands.Context, *, arg):
         await ctx.send("generating response...")
         try:
             response = await api.genericPrompt(ctx, arg)

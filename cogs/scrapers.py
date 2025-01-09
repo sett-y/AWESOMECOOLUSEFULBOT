@@ -9,8 +9,8 @@ class Scrapers(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name="catfact", description="displays a random cat fact")
-    async def catfact(self, ctx: commands.Context):
+    @commands.command(aliases=["catfact","cat"], description="displays a random cat fact")
+    async def catFact(self, ctx: commands.Context):
         #TODO: delete this after get_fact is done
         await ctx.send("loading cat fact...")
         try:
