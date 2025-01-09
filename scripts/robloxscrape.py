@@ -1,7 +1,10 @@
 from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
 import random
+
+limit = 0
 async def get_gamedata(id='') -> str:
+    global limit
     rand = False
     if id == '':
         rand = True
@@ -15,6 +18,7 @@ async def get_gamedata(id='') -> str:
         except Exception as e:
             print(f"Unable to launch browser: {e}")
         page = await browser.new_page()
+
         if await page.goto(url):
             print(f"Scraping Roblox page gameID:{id}...")
         else:
@@ -24,7 +28,8 @@ async def get_gamedata(id='') -> str:
 
         html = BeautifulSoup(await page.content(), 'html.parser')
         if html.find('h4', class_='error-message') is not None:
-            if rand == True:
+            if rand == True and limit != 10:
+                limit += 1
                 return await get_gamedata()
             else:
                 return 1
