@@ -12,8 +12,8 @@ class Fun(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(description="repeats user's message", aliases=["echo","print"])
-    async def echoMsg(self, ctx: commands.Context, *, arg):
+    @commands.command(description="repeats user's message", aliases=["print"])
+    async def echo(self, ctx: commands.Context, *, arg):
         #TODO: needs perms
         await ctx.message.delete()
         await ctx.send(arg)
