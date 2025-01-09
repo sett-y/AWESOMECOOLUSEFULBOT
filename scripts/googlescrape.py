@@ -21,19 +21,12 @@ async def get_search(search_term) -> str:
         html = BeautifulSoup(await page.content(), 'html.parser')
         #title = html.find_all('h3', {'class': 'LC20lb MBeuO DKV0Md'})
         indv_html = html.find_all('span', {'jscontroller': 'msmzHf'})
-        title_url = indv_html[0].find('a', {'jsname': 'UWckNb'})
-        title = indv_html[0].find('h3', {'class': 'LC20lb MBeuO DKV0Md'})
-        print(len(indv_html))
         data = []
         for i in range(len(indv_html)):
             title_url = indv_html[i].find('a', {'jsname': 'UWckNb'})
             title = indv_html[i].find('h3', {'class': 'LC20lb MBeuO DKV0Md'})
             result_dict = {'title': title.contents[0], 'url': title_url['href']}
             data.append(result_dict)
-        #print(data[10])
-        #print(title.contents[0])
-        #print(title_url['href'])
-        #print(indv_html[0].contents[0])
         await browser.close()
         print("Scraping Complete")
         return data
