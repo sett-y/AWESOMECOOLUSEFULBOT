@@ -48,8 +48,8 @@ class Fun(commands.Cog):
             w = websites[random.randint(0,len(websites)-1)].strip('\n')
             await ctx.send(w)
 
-    @commands.command(aliases=["reminder","remind"], description="send reminder msg, then enter numbers in subsequent msg:<hours> <minutes>")
-    async def reminderTimer(self, ctx: commands.Context, *, arg):
+    @commands.command(aliases=["remind"], description="send reminder msg, then enter numbers in subsequent msg:<hours> <minutes>")
+    async def reminder(self, ctx: commands.Context, *, arg):
         tmpMinutes = 0
         tmpHours = 0
 
