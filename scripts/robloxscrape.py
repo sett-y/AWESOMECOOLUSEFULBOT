@@ -40,6 +40,8 @@ async def get_gamedata(id='') -> str:
         game_name = html.find("h1", {'class': 'game-name'})
         game_name = game_name.contents[0]
         game_thumbnail = html.find("span", {'class': 'thumbnail-2d-container carousel-item carousel-item-active-out'})
+        game_desc = html.find("pre", {'class': 'text game-description'})
+        game_desc = game_desc.contents[0]
         game_link = url
         try:
             game_thumbnail = game_thumbnail.find("img", {'class': ''})
@@ -51,6 +53,7 @@ async def get_gamedata(id='') -> str:
         data.append(player_count)
         data.append(game_thumbnail)
         data.append(game_link)
+        data.append(game_desc) # adding last so order isnt messed up
         await browser.close()
         print("Scraping Complete")
         return data
