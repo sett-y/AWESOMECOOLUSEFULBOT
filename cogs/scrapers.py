@@ -5,6 +5,7 @@ import scripts.scraper as scraper
 import PIL
 from scripts.robloxscrape import get_gamedata
 
+
 class Scrapers(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -68,6 +69,8 @@ class Scrapers(commands.Cog):
         embed.add_field(name="Description", value=data[4])
         embed.set_thumbnail(url=data[2]) 
         await ctx.send(embed=embed)
+
+
 
 def setup(bot):
     bot.add_cog(Scrapers(bot))
