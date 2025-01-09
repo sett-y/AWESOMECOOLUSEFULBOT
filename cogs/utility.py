@@ -1,5 +1,6 @@
 from discord.ext import commands
 import discord
+from scripts.googlescrape import get_search
 
 class Util(commands.Cog):
     def __init__(self, bot):
@@ -26,9 +27,16 @@ class Util(commands.Cog):
     async def delivery_notif(self, ctx: commands.Context, url):
         pass
 
-    @commands.command()
-    async def google(self, ctx: commands.Context):
-        pass
+    @commands.command(description='google search! ! ')
+    async def google(self, ctx: commands.Context, *, search_term):
+        embed = discord.Embed(title="gooel")
+        data = await get_search(search_term)
+        for i in range(len(data)):
+            title = value=data[i]['title']
+            url = value=data[i]['url']
+            embed.add_field(name="Result:", value=f'[{title}]({url})')
+            #embed.add_field(name="url", value=data[i]['url'])
+        await ctx.send(embed=embed)
 
 
 def setup(bot):
