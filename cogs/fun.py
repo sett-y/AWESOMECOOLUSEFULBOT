@@ -12,8 +12,8 @@ class Fun(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(description="repeats user's message", aliases=["echo","print"])
-    async def echoMsg(self, ctx: commands.Context, *, arg):
+    @commands.command(description="repeats user's message", aliases=["print"])
+    async def echo(self, ctx: commands.Context, *, arg):
         #TODO: needs perms
         await ctx.message.delete()
         await ctx.send(arg)
@@ -39,8 +39,8 @@ class Fun(commands.Cog):
         botmsg = await ctx.send("https://tenor.com/view/troll-troll-face-ragememe-rageface-trolling-gif-7857576152495722734")
         await botmsg.delete()
 
-    @commands.command(description="sends a random cool website", aliases=["website","site"])
-    async def websiteCmd(self, ctx: commands.Context):
+    @commands.command(description="sends a random cool website", aliases=["site"])
+    async def website(self, ctx: commands.Context):
         websites = []
         with open("websites.txt", 'r') as file:
             for website in file:
@@ -48,8 +48,8 @@ class Fun(commands.Cog):
             w = websites[random.randint(0,len(websites)-1)].strip('\n')
             await ctx.send(w)
 
-    @commands.command(aliases=["reminder","remind"], description="send reminder msg, then enter numbers in subsequent msg:<hours> <minutes>")
-    async def reminderTimer(self, ctx: commands.Context, *, arg):
+    @commands.command(aliases=["remind"], description="send reminder msg, then enter numbers in subsequent msg:<hours> <minutes>")
+    async def reminder(self, ctx: commands.Context, *, arg):
         tmpMinutes = 0
         tmpHours = 0
 

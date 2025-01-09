@@ -19,13 +19,13 @@ async def get_search(search_term) -> str:
         await page.wait_for_load_state('networkidle')
 
         html = BeautifulSoup(await page.content(), 'html.parser')
-        #title = html.find_all('h3', {'class': 'LC20lb MBeuO DKV0Md'})
         indv_html = html.find_all('span', {'jscontroller': 'msmzHf'})
         data = []
         for i in range(len(indv_html)):
             title_url = indv_html[i].find('a', {'jsname': 'UWckNb'})
             title = indv_html[i].find('h3', {'class': 'LC20lb MBeuO DKV0Md'})
-            result_dict = {'title': title.contents[0], 'url': title_url['href']}
+            site_title = indv_html[i].find('span', {'class': 'VuuXrf'})
+            result_dict = {'title': title.contents[0], 'url': title_url['href'], 'site_title': site_title.contents[0]}
             data.append(result_dict)
         await browser.close()
         print("Scraping Complete")
