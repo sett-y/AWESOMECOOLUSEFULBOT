@@ -3,6 +3,7 @@ import discord
 import scripts.catFacts as catFacts
 import scripts.scraper as scraper
 import PIL
+from scripts.robloxscrape import get_gamedata
 
 class Scrapers(commands.Cog):
     def __init__(self, bot):
@@ -54,6 +55,18 @@ class Scrapers(commands.Cog):
         #for h in html:
             #await ctx.send(h)
 
+    @commands.command(aliases=['rg'], description="video game 4 the gamily")
+    async def robloxgame(self, ctx: commands.Context, id = ''):
+        await ctx.send("Checking 4 Game!")
+        data = await get_gamedata(id)
+        if data == 1:
+            await ctx.send("Game not found!")
+        embed = discord.Embed(title='roblo game')
+        embed.add_field(name='Title', value=data[0])
+        embed.add_field(name="Player Count", value=data[1])
+        embed.add_field(name="Link", value=f'[link]({data[3]})')
+        embed.set_thumbnail(url=data[2]) 
+        await ctx.send(embed=embed)
 
 def setup(bot):
     bot.add_cog(Scrapers(bot))
