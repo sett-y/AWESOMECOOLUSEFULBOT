@@ -87,6 +87,24 @@ class Fun(commands.Cog):
     async def schoolalarm(self, ctx: commands.Context):
         await ctx.send("https://cdn.discordapp.com/attachments/1163949682427433030/1324551380135837817/schoolalarm.gif?ex=67789019&is=67773e99&hm=f840c9dcb64160f64e4f0c48d3a2d51c23051ec04412c0bd29af6874249c50b2&")
 
+    @commands.command(description=",little brap ;)")
+    async def fart(self, ctx: commands.Context):
+        fart_length = random.randint(10, 30)
+        fart_characters = ('p','p','p','r','r','e','r','a','f','f',' ', '\U0001F4A9')
+        fart_string = []
+
+        for _ in range(fart_length):
+            fart_char = random.choice(fart_characters)
+            fart_string.append(fart_char)
+
+        new_fart = ''.join(str(x) for x in fart_string)
+    
+        emoji_list = ctx.guild.emojis
+        print(emoji_list[0].name)
+        #await ctx.send(emoji_list[2])
+        #:emoji_name:
+        await ctx.send(new_fart)
+
     @commands.command(description="adds impact font to an image")
     async def impact(self, ctx: commands.Context, message: discord.Message):
         dscImg = message.attachments[0].url
