@@ -1,6 +1,6 @@
 from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
-import random
+
 async def get_search(search_term) -> str:
     search_term = search_term
     async with async_playwright() as p:
