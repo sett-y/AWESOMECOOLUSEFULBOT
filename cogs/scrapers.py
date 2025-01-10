@@ -4,6 +4,7 @@ import scripts.catFacts as catFacts
 import scripts.scraper as scraper
 import PIL
 from scripts.robloxscrape import get_gamedata
+import scripts.YoutubeSearch as youtube
 
 
 class Scrapers(commands.Cog):
@@ -59,7 +60,8 @@ class Scrapers(commands.Cog):
     @commands.command(aliases=['rg'], description="video game 4 the gamily")
     async def robloxgame(self, ctx: commands.Context, id = ''):
         await ctx.send("Checking 4 Game!")
-        data = await get_gamedata(id)
+        async with ctx.channel.typing():
+            data = await get_gamedata(id)
         if data == 1:
             await ctx.send("Game not found!")
         embed = discord.Embed(title='roblo game')
@@ -70,6 +72,10 @@ class Scrapers(commands.Cog):
         embed.set_thumbnail(url=data[2]) 
         await ctx.send(embed=embed)
 
+    @commands.command(aliases=["yt","youtubesearch","ytsearch"], description="searches and displays the top 5 youtube search results for a topic")
+    async def youtube(self, ctx: commands.Context, *, url):
+        async with ctx.channel.typing():
+            thumbnails = await youtube.youtubeSearch(url)
 
 
 def setup(bot):
