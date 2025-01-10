@@ -4,7 +4,7 @@ import scripts.catFacts as catFacts
 import scripts.scraper as scraper
 import PIL
 from scripts.robloxscrape import get_gamedata
-import scripts.YoutubeSearch as youtube
+from scripts.YoutubeSearch import youtubeSearch
 
 
 class Scrapers(commands.Cog):
@@ -75,7 +75,7 @@ class Scrapers(commands.Cog):
     @commands.command(aliases=["yt","youtubesearch","ytsearch"], description="searches and displays the top 5 youtube search results for a topic")
     async def youtube(self, ctx: commands.Context, *, url):
         async with ctx.channel.typing():
-            thumbnails = await youtube.youtubeSearch(url)
+            thumbnails = await youtubeSearch(url)
 
 
 def setup(bot):
