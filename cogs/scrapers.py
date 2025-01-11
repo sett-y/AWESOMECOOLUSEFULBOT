@@ -3,8 +3,10 @@ import discord
 import scripts.catFacts as catFacts
 import scripts.scraper as scraper
 import PIL
+import random
 from scripts.robloxscrape import get_gamedata
 from scripts.YoutubeSearch import youtubeSearch
+from scripts.SongOfTheDay import SpotifySong
 
 
 class Scrapers(commands.Cog):
@@ -73,10 +75,36 @@ class Scrapers(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(aliases=["yt","youtubesearch","ytsearch"], description="searches and displays the top 5 youtube search results for a topic")
-    async def youtube(self, ctx: commands.Context, *, url):
+    async def youtube(self, ctx: commands.Context, *, searchTerm):
         async with ctx.channel.typing():
-            thumbnails = await youtubeSearch(url)
+            searchTerm = "https://www.youtube.com/results?search_query=" + searchTerm
+            searchTerm = searchTerm.replace(" ","+")
+            #await ctx.send(searchTerm)
+            thumbnails = await youtubeSearch(searchTerm)
+            if thumbnails:
+                print("success")
+                for img in thumbnails:
+                    await ctx.send(img)
+            else:
+                print("epic fail")
+                await ctx.send(f"results scraped: {len(thumbnails)}")
+            
+        embed = discord.Embed(title="youtube")
+        embed.set_thumbnail(url="https://i.ytimg.com/vi/b0zE0jrAUXo/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLCZVNqjADBwRPMkz8T7nzYgeaE59A")
+        embed.set_image(url="https://i.ytimg.com/vi/b0zE0jrAUXo/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLCZVNqjADBwRPMkz8T7nzYgeaE59A")
+        
+        await ctx.send(embed=embed)
+        
+    @commands.command(aliases=["sotd","spotifysong"], description="sends a random song from a spotify album")
+    async def spotify(self, ctx: commands.Context, url):
+        song = await SpotifySong(url)
+        songItems = song['items']
 
+        ranSongChoice = random.choice(songItems)
+        choice = ranSongChoice['track']['external_urls']['spotify']
+
+        await ctx.send(choice)
+        
 
 def setup(bot):
     bot.add_cog(Scrapers(bot))

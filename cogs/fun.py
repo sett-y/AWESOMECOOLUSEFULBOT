@@ -116,5 +116,15 @@ class Fun(commands.Cog):
 
         #ImageFont
 
+    """
+        idea: userphone-like command that searches for connection to another server,
+        and sends messages back and forth between servers
+        
+        pseudo code, ignore this
+
+        for id in id_list:
+            
+    """
+
 def setup(bot):
     bot.add_cog(Fun(bot))
