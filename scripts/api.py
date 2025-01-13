@@ -1,5 +1,6 @@
 import google.generativeai as genai
 import scripts.config
+from discord.ext import commands
 
 #TODO: replace contextList with dictionary that generates a list named after the current server id,
 # if this id isnt an element yet. each list will hold the history of its respective server.
@@ -11,6 +12,7 @@ import scripts.config
 #TODO: global prompt, adds prompt to all history lists
 
 contextList = []
+contextDict = {} # dict that holds all histories
 promptNum = 30
 initialExplanation = "You are the discord bot \"AWESOMECOOLUSEFULBOT\". Below is the \
 history of the recent user prompts along with your responses. While understanding \
@@ -23,7 +25,7 @@ of this given prompt aside from what the user said most recently. Do not prepend
 your messages unless explicitly asked to.\n"
 
 # prompt | response
-async def addContextHistory(userResponse: str, botResponse: str, ctx) -> str:
+async def addContextHistory(userResponse: str, botResponse: str, ctx: commands.Context):
     history = f"{ctx.author.name}: {userResponse}\nbot: {botResponse}\n"
     if len(contextList) < promptNum:
         contextList.append(history)
@@ -39,6 +41,67 @@ async def configureResponse():
         #response = 
     else:
         pass
+
+async def addServerContextHistory(userResponse: str, botResponse: str, ctx: commands.Context):
+    history = f"{ctx.author.name}: {userResponse}\nbot: {botResponse}\n"
+    guildID = ctx.guild.id
+
+    if len(contextDict) > 0:
+        if guildID not in contextDict:
+            contextDict[guildID] = []
+        else:
+            print("dictionary contains this key, continuing")
+    else:
+        contextDict[guildID] = []
+
+    # add to server context
+    if len(contextDict[guildID]) < promptNum:
+        contextDict[guildID].append(history)
+    else:
+        print("history over max, popping")
+        contextDict[guildID].pop(0)
+        contextDict[guildID].append(history)
+        
+
+async def serverPrompt(ctx: commands.Context, prompt) -> str:
+    guildID = ctx.guild.id
+    model_config = genai.GenerationConfig(temperature=1.8)
+    
+    genai.configure(api_key=scripts.config.genai_token)
+    model = genai.GenerativeModel("gemini-2.0-flash-exp", generation_config=model_config)
+    print("generating...")
+
+    if guildID not in contextDict:
+        contextDict[guildID] = []
+
+    if len(contextDict[guildID]) > 0:
+        fullContext = '\n'.join(str(x) for x in contextDict[guildID])
+        fullContext = initialExplanation + fullContext
+        response = await model.generate_content_async(fullContext + prompt)
+    else:
+        response = await model.generate_content_async(initialExplanation + f"{ctx.author.name}: " + prompt)
+
+    await addServerContextHistory(prompt, response.text, ctx)
+
+    return response.text
+
+async def genericPrompt(ctx: commands.Context, prompt) -> str:
+    model_config = genai.GenerationConfig(temperature=1.8)
+    
+    genai.configure(api_key=scripts.config.genai_token)
+    model = genai.GenerativeModel("gemini-2.0-flash-exp", generation_config=model_config)
+    print("generating text... (gemini)")
+
+    if len(contextList) > 0:
+        fullContext = '\n'.join(str(x) for x in contextList)
+        fullContext = initialExplanation + fullContext
+        response = await model.generate_content_async(fullContext + prompt)
+    else:
+        response = await model.generate_content_async(initialExplanation + f"{ctx.author.name}: " + prompt)
+    
+    await addContextHistory(prompt, response.text, ctx)
+
+    return response.text
 
 async def fortune() -> str:
     prompt = "write a fortune one would find in a fortune cookie.\
@@ -76,23 +139,6 @@ async def asciiArt(prompt) -> str:
 
     return response.text
 
-async def genericPrompt(ctx, prompt) -> str:
-    model_config = genai.GenerationConfig(temperature=1.8)
-    
-    genai.configure(api_key=scripts.config.genai_token)
-    model = genai.GenerativeModel("gemini-2.0-flash-exp", generation_config=model_config)
-    print("generating text... (gemini)")
-
-    if len(contextList) > 0:
-        fullContext = '\n'.join(str(x) for x in contextList)
-        fullContext = initialExplanation + fullContext
-        response = await model.generate_content_async(fullContext + prompt)
-    else:
-        response = await model.generate_content_async(initialExplanation + f"{ctx.author.name}: " + prompt)
-    
-    await addContextHistory(prompt, response.text, ctx)
-
-    return response.text    
 
 async def oppositePrompt(prompt) -> str:
     model_config = genai.GenerationConfig(temperature=2.0,top_k=1,top_p=1)
@@ -110,11 +156,34 @@ async def oppositePrompt(prompt) -> str:
 
     return response.text
 
-async def promptHistory() -> str:
+async def globalHistory() -> str:
     history = '\n'.join(str(x) for x in contextList)
     return history
 
-async def imageEdit(prompt):
+async def clearGlobalHistory():
+    for key in contextDict:
+        del key
+    if len(contextDict) == 0:
+        print("keys deleted")
+
+async def serverHistory(ctx):
+    guildID = ctx.guild.id
+    if guildID not in contextDict.keys():
+        print("no server history found")
+        await ctx.send("no server history found")
+        return
+
+    history = '\n'.join(str(x) for x in contextDict[guildID])
+    if len(history) <= 0:
+        print("no history for this server")
+        return
+    return history
+
+async def clearServerHistory(ctx):
+    guildID = ctx.guild.id
+    del contextDict[guildID]
+
+async def imageEdit(prompt): # gemini image edit
     pass
 
 async def summarize(history):
