@@ -1,5 +1,6 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
+import datetime
 import asyncio
 import scripts.config
 import os
@@ -115,6 +116,11 @@ async def on_guild_emojis_update(guild, before, after):
     newEmoji = after[-1]
     channel = guild.system_channel
     await channel.send(newEmoji)
+
+
+@bot.event
+async def on_member_join(member: discord.Member):
+    await member.guild.system_channel.send(f"{member} hi")
 
 
 async def main():
