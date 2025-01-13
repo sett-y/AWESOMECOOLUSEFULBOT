@@ -5,8 +5,6 @@ import os
 import scripts.ytmp3 as ytmp3
 import asyncio
 #import wavelink
-import scripts.config as config
-from scripts.botimp import bot
 
 #TODO: for files that go over upload limit, upload to temp file hosting service and send link
 
