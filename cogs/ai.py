@@ -8,6 +8,14 @@ class AI(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.command(aliases=["sp"], description="generate a response based on prompt given (history is per server)")
+    async def prompt(self, ctx: commands.Context, *, arg):
+        await ctx.send("generating response...")
+        response = await api.serverPrompt(ctx, arg)
+        if response:
+            print("response generated")
+            await ctx.send(response)
+
     @commands.command(name="fortune", description="prompt google gemini to generate a fortune")
     async def fortunecookie(self, ctx: commands.Context):
         await ctx.send("reading fortune...")
@@ -23,7 +31,7 @@ class AI(commands.Cog):
         await ctx.send(f"```{ascii}```")
 
     @commands.command(aliases=["gemini","ai"], description="generate a response based on prompt given")
-    async def prompt(self, ctx: commands.Context, *, arg):
+    async def globalprompt(self, ctx: commands.Context, *, arg):
         await ctx.send("generating response...")
         try:
             response = await api.genericPrompt(ctx, arg)
@@ -50,20 +58,45 @@ class AI(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def history(self, ctx: commands.Context):
-        history = await api.promptHistory()
+    async def globalhistory(self, ctx: commands.Context):
+        history = await api.globalHistory()
         if not history:
             print("no prompt history available!")
             await ctx.send("no prompt history available!")
             return
         if len(history) > 2000:
-            async with open("history.txt", "w") as file:
+            async with open("history.txt","w") as file:
                 file.write(history)
             
             await ctx.send(file=discord.File("history.txt"))
             os.remove(f"{os.getcwd}\\history.txt")
         else:
             await ctx.send(history)
+
+    @commands.command()
+    @commands.is_owner()
+    async def clearGlobalHistory(self, ctx: commands.Context):
+        await api.clearGlobalHistory()
+
+    @commands.command()
+    @commands.is_owner()
+    async def history(self, ctx: commands.Context):
+        history = await api.serverHistory(ctx)
+        if not history:
+            return
+        if len(history) > 2000:
+            async with open("history.txt","w") as file:
+                file.write(history)
+
+            await ctx.send(file=discord.File("history.txt"))
+            os.remove(f"{os.getcwd()}\\history.txt")
+        else:
+            await ctx.send(history)
+
+    @commands.command()
+    @commands.is_owner()
+    async def clearServerHistory(self, ctx: commands.Context):
+        await api.clearServerHistory(ctx)
 
     async def get_last_messages(self, ctx: commands.Context, n) -> list[str]:
         messages = []
@@ -108,6 +141,11 @@ class AI(commands.Cog):
         #    return
         await voicegen.main(arg, lang)
         await ctx.send(file=discord.File("scripts/voicegeneration/gen.mp3"))
+
+    @commands.command(description="clears all gemini context history")
+    @commands.is_owner()
+    async def clear(self, ctx: commands.Context):
+        pass
 
 def setup(bot):
     bot.add_cog(AI(bot))

@@ -40,6 +40,18 @@ class Util(commands.Cog):
             embed.add_field(name=f'{site_title}', value=f'[{title}]({url})')
         await ctx.send(embed=embed)
 
+    @commands.command(description="sends list of commands w/ aliases")
+    async def aliases(self, ctx: commands.Context):
+        commandList = []
+        for c in self.bot.commands:
+            commandList.append(f"{c.name} - {c.aliases}\n")
+        cmdList = ''.join(str(c) for c in commandList)
+        await ctx.send(cmdList)
+
+    @commands.command(aliases=["wikipedia","wikisearch"], description="searches wikipedia")
+    async def wiki(self, ctx: commands.Context, *, search):
+        await ctx.send(f"https://en.wikipedia.org/wiki/{search}")
+
 
 def setup(bot):
     bot.add_cog(Util(bot))

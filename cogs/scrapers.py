@@ -1,16 +1,17 @@
-from discord.ext import commands
+from discord.ext import commands, tasks
 import discord
 import scripts.catFacts as catFacts
 import scripts.scraper as scraper
 import PIL
 import random
+import datetime
 from scripts.robloxscrape import get_gamedata
 from scripts.YoutubeSearch import youtubeSearch
 from scripts.SongOfTheDay import SpotifySong
 
 
 class Scrapers(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: discord.Bot):
         self.bot = bot
 
     @commands.command(aliases=["catfact","cat"], description="displays a random cat fact")
@@ -98,13 +99,26 @@ class Scrapers(commands.Cog):
     @commands.command(aliases=["sotd","spotifysong"], description="sends a random song from a spotify album")
     async def spotify(self, ctx: commands.Context, url):
         song = await SpotifySong(url)
+        # logic to choose between album and playlist
+
         songItems = song['items']
 
         ranSongChoice = random.choice(songItems)
         choice = ranSongChoice['track']['external_urls']['spotify']
 
         await ctx.send(choice)
-        
+
+    @tasks.loop(time=datetime.time(hour=5, minute=41))
+    async def dailySong(self, ctx: commands.Context):
+        channel = self.bot.get_channel(684575538957910055)
+        song = await SpotifySong("https://open.spotify.com/playlist/04mZkGQA7QgVt3SPHuob76?si=AYE-9WXlSUOaixoMER3SZw")
+        songItems = song['items']
+
+        ranSongChoice = random.choice(songItems)
+        choice = ranSongChoice['track']['external_urls']['spotify']
+
+        await channel.send(choice)
+
 
 def setup(bot):
     bot.add_cog(Scrapers(bot))
