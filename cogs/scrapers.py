@@ -5,14 +5,20 @@ import scripts.scraper as scraper
 import PIL
 import random
 import datetime
+import spotipy
 from scripts.robloxscrape import get_gamedata
 from scripts.YoutubeSearch import youtubeSearch
 from scripts.SongOfTheDay import SpotifySong
+from scripts.TwitterBot import postMessage
 
 
 class Scrapers(commands.Cog):
     def __init__(self, bot: discord.Bot):
         self.bot = bot
+        #self.bot.add_listener(self.on_raw_reaction_add, 'on_raw_reaction_add')
+        self.reactionsNeeded = 2
+        self.reactCount = 0
+        # add dict with guild ids for keys that tracks the reaction threshhold
 
     @commands.command(aliases=["catfact","cat"], description="displays a random cat fact")
     async def catFact(self, ctx: commands.Context):
@@ -98,16 +104,46 @@ class Scrapers(commands.Cog):
         
     @commands.command(aliases=["sotd","spotifysong"], description="sends a random song from a spotify album")
     async def spotify(self, ctx: commands.Context, url):
-        song = await SpotifySong(url)
+        song, apiResult = await SpotifySong(url)
         # logic to choose between album and playlist
+        if apiResult == "playlist":
+            songItems = song['items']
+            ranSongChoice = random.choice(songItems)
+            choice = ranSongChoice['track']['external_urls']['spotify']
+            await ctx.send(choice)
+        elif apiResult == "album":
+            songItems = song['items']
+            ranSongChoice = random.choice(songItems)
+            choice = ranSongChoice['external_urls']['spotify']
+            await ctx.send(choice)
+        else:
+            print("input is neither playlist nor album")
 
-        songItems = song['items']
 
-        ranSongChoice = random.choice(songItems)
-        choice = ranSongChoice['track']['external_urls']['spotify']
+    #TODO: cmd to display latest post
 
-        await ctx.send(choice)
+        
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        # maybe have list of messages to ignore once threshold is reached
 
+        channel = self.bot.get_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
+        reactions = message.reactions
+
+        if message.author.id == self.bot.user.id:
+            return
+
+        if str(payload.emoji) == "🚎":
+            for reaction in reactions:
+                if str(reaction.emoji) == "🚎":
+                    if reaction.count == self.reactionsNeeded:
+                        await channel.send("troll (fake)")
+                        await postMessage(message.content)
+                        # end loop since correct emoji found
+                        break
+
+    # i dont think this works
     @tasks.loop(time=datetime.time(hour=5, minute=41))
     async def dailySong(self, ctx: commands.Context):
         channel = self.bot.get_channel(684575538957910055)
