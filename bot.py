@@ -95,6 +95,9 @@ async def on_message(message: discord.Message):
     if reactChance < 0.05:
         randomEmoji = random.choice(serverEmojis)
         await message.add_reaction(randomEmoji)
+    elif reactChance < 0.005:
+        randomEmoji = "🐲"
+        await message.add_reaction(randomEmoji)
 
     if message.author == bot.user:
         return
