@@ -8,10 +8,14 @@ async def SpotifySong(url):
     sp = spotipy.Spotify(auth_manager=auth_manager)
 
     # logic to decide between song and album, should check w/ api instead
-    if "playlist" in url:
+    try:
         userPlaylist = sp.playlist_items(playlist_id=url, additional_types="track")
-        return userPlaylist
+        return userPlaylist, "playlist"
+    except:
+        print("type is not playlist")
     
-    elif "album" in url:
+    try:
         userAlbum = sp.album_tracks(album_id=url)
-        return userAlbum
+        return userAlbum, "album"
+    except:
+        print("type is not album or playlist")
