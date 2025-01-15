@@ -13,7 +13,7 @@ from discord.ext import commands
 
 contextList = []
 contextDict = {} # dict that holds all histories
-promptNum = 30
+promptNum = 40
 initialExplanation = "You are the discord bot \"AWESOMECOOLUSEFULBOT\". Below is the \
 history of the recent user prompts along with your responses. While understanding \
 the context of the previous text, analyze and respond to \
@@ -169,8 +169,6 @@ async def clearGlobalHistory():
 async def serverHistory(ctx):
     guildID = ctx.guild.id
     if guildID not in contextDict.keys():
-        print("no server history found")
-        await ctx.send("no server history found")
         return
 
     history = '\n'.join(str(x) for x in contextDict[guildID])
