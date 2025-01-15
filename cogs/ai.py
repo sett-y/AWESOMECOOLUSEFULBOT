@@ -11,9 +11,51 @@ class AI(commands.Cog):
     @commands.command(aliases=["sp"], description="generate a response based on prompt given (history is per server)")
     async def prompt(self, ctx: commands.Context, *, arg):
         await ctx.send("generating response...")
-        response = await api.serverPrompt(ctx, arg)
+        try:
+            response = await api.serverPrompt(ctx, arg)
+        except ValueError:
+            await ctx.send("[message blocked retard]")
+            print("message blocked")
         if response:
             print("response generated")
+        else:
+            return
+        
+        await self.sendResponse(ctx, response)
+        
+    @commands.command(aliases=["gemini","ai"], description="generate a response based on prompt given")
+    async def globalprompt(self, ctx: commands.Context, *, arg):
+        await ctx.send("generating response...")
+        response = await api.genericPrompt(ctx, arg)
+        if response:
+            print("response generated")
+        else:
+            return
+        
+        await self.sendResponse(ctx, response)
+
+    @commands.command(description="generate an EVIL response based on prompt given")
+    async def antiprompt(self, ctx: commands.Context, *, arg):
+        await ctx.send("generating EVIL response...")
+        response = await api.oppositePrompt(arg)
+        if response:
+            print("response generated")
+        else:
+            return
+        
+        await self.sendResponse(ctx, response)
+    
+    # checks if response is over 2k chars and loads / sends txt file, otherwise sends normally
+    async def sendResponse(self, ctx: commands.Context, response):
+        if len(response) > 2000:
+            print("response over 2000 character limit, writing to file")
+            # load response into txt file
+            with open("response.txt","w") as file:
+                file.write(response)
+            
+            await ctx.send(file=discord.File("response.txt"))
+            os.remove(f"{os.getcwd()}\\response.txt")
+        else:
             await ctx.send(response)
 
     @commands.command(name="fortune", description="prompt google gemini to generate a fortune")
@@ -30,42 +72,16 @@ class AI(commands.Cog):
         print("generated")
         await ctx.send(f"```{ascii}```")
 
-    @commands.command(aliases=["gemini","ai"], description="generate a response based on prompt given")
-    async def globalprompt(self, ctx: commands.Context, *, arg):
-        await ctx.send("generating response...")
-        try:
-            response = await api.genericPrompt(ctx, arg)
-        except Exception as e:
-            print(e)
-        if len(response) > 2000:
-            print("response over 2000 character limit, writing to file")
-            # load response into txt file
-            async with open("response.txt", "w") as file:
-                file.write(response)
-            
-            await ctx.send(file=discord.File("response.txt"))
-            os.remove(f"{os.getcwd()}\\response.txt")
-        else:
-            print("response generated")
-            await ctx.send(response)
-
-    @commands.command()
-    async def antiprompt(self, ctx: commands.Context, *, arg):
-        await ctx.send("generating EVIL response...")
-        response = await api.oppositePrompt(arg)
-        print("response generated")
-        await ctx.send(response)
-
-    @commands.command()
+    @commands.command(description="global context history (owner only)")
     @commands.is_owner()
     async def globalhistory(self, ctx: commands.Context):
         history = await api.globalHistory()
         if not history:
-            print("no prompt history available!")
-            await ctx.send("no prompt history available!")
+            print("no global prompt history available!")
+            await ctx.send("no global prompt history available!")
             return
         if len(history) > 2000:
-            async with open("history.txt","w") as file:
+            with open("history.txt","w") as file:
                 file.write(history)
             
             await ctx.send(file=discord.File("history.txt"))
@@ -78,14 +94,15 @@ class AI(commands.Cog):
     async def clearGlobalHistory(self, ctx: commands.Context):
         await api.clearGlobalHistory()
 
-    @commands.command()
-    @commands.is_owner()
+    @commands.command(description="server context history")
     async def history(self, ctx: commands.Context):
         history = await api.serverHistory(ctx)
         if not history:
+            print("no prompt history available!")
+            await ctx.send("no prompt history available!")
             return
         if len(history) > 2000:
-            async with open("history.txt","w") as file:
+            with open("history.txt","w") as file:
                 file.write(history)
 
             await ctx.send(file=discord.File("history.txt"))
@@ -107,7 +124,7 @@ class AI(commands.Cog):
         messages.reverse()
         return messages
 
-    @commands.command() 
+    @commands.command(description="google gemini summarizes N recent chat messages") 
     async def summarize(self, ctx: commands.Context, n: int):
         n = int(n)
         # check for valid user input
