@@ -76,14 +76,14 @@ class Fun(commands.Cog):
         print("sleep done")
         await ctx.send(f"{ctx.author.mention} {arg} {message[0]} {message[1]}")
 
-    @commands.command(aliases=["reverse","reversetext","reversetxt"])
+    @commands.command(aliases=["reverse","reversetext","reversetxt"], description="reverses text")
     async def reverseText(self, ctx: commands.Context, *, msg):
         msg = msg[::-1]
         await ctx.send(msg)
         #TODO: reverse text from replies
         #TODO: if perms to delete msg, delete user's msg provided flag is used
 
-    @commands.command()
+    @commands.command(description="still better than school alarm")
     async def schoolalarm(self, ctx: commands.Context):
         await ctx.send("https://cdn.discordapp.com/attachments/1163949682427433030/1324551380135837817/schoolalarm.gif?ex=67789019&is=67773e99&hm=f840c9dcb64160f64e4f0c48d3a2d51c23051ec04412c0bd29af6874249c50b2&")
 
