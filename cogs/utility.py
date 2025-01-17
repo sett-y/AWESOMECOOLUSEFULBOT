@@ -1,6 +1,8 @@
 from discord.ext import commands
 import discord
 from scripts.googlescrape import get_search
+import sqlite3
+import os
 
 class Util(commands.Cog):
     def __init__(self, bot):
@@ -51,6 +53,34 @@ class Util(commands.Cog):
     @commands.command(aliases=["wikipedia","wikisearch"], description="searches wikipedia")
     async def wiki(self, ctx: commands.Context, *, search):
         await ctx.send(f"https://en.wikipedia.org/wiki/{search}")
+
+    # table layout: guild id table name | keys (server config vars)
+    @commands.command()
+    async def switchreact(self, ctx: commands.Context, userEmoji):
+        con = sqlite3.connect("files/configs.db")
+        # cursor to interact w/ database
+        cur = con.cursor()
+
+        query = '''
+        SELECT emoji FROM sqlite_master
+        WHERE type='table' AND name=?
+
+        '''
+        guildID = ctx.guild.id
+
+        # checks if table exists
+        guildTable = cur.execute(query,(guildID)).fetchall()
+
+        # if table doesnt exist
+        if guildTable == []:
+            cur.execute("CREATE TABLE ? (emoji)",(guildID))
+        # access existing table
+        else:
+            pass
+
+        con.commit()
+        con.close()
+
 
 
 def setup(bot):
