@@ -1,23 +1,23 @@
 from discord.ext import commands, tasks
 import discord
-import scripts.catFacts as catFacts
-import scripts.scraper as scraper
 import PIL
 import random
 import datetime
-import spotipy
+import io
+import aiohttp
+import scripts.catFacts as catFacts
+import scripts.scraper as scraper
 from scripts.robloxscrape import get_gamedata
 from scripts.YoutubeSearch import youtubeSearch
 from scripts.SongOfTheDay import SpotifySong
-from scripts.TwitterBot import postMessage
+from scripts.TwitterBot import postMessage, getLastPost
 
 
 class Scrapers(commands.Cog):
     def __init__(self, bot: discord.Bot):
         self.bot = bot
         #self.bot.add_listener(self.on_raw_reaction_add, 'on_raw_reaction_add')
-        self.reactionsNeeded = 2
-        self.reactCount = 0
+        self.reactionsNeeded = 1
         # add dict with guild ids for keys that tracks the reaction threshhold
 
     @commands.command(aliases=["catfact","cat"], description="displays a random cat fact")
@@ -35,7 +35,7 @@ class Scrapers(commands.Cog):
         #await ctx.send("fetching match...")
         #html = await scraper.call_scraper("get_match_info", url)
 
-        thumbnail = discord.File("images/dotabuff.png", filename="dotabuff.png")
+        thumbnail = discord.File("files/images/dotabuff.png", filename="dotabuff.png")
         embed = discord.Embed(title="bruh")
         embed.add_field(name="test 1", value="tasdfdfjlasdjf")
         embed.add_field(name="test 2", value="aldfjaldskjfd", inline=False)
@@ -102,7 +102,8 @@ class Scrapers(commands.Cog):
         
         await ctx.send(embed=embed)
         
-    @commands.command(aliases=["sotd","spotifysong"], description="sends a random song from a spotify album")
+    #TODO: search feature
+    @commands.command(aliases=["sotd","spotifysong"], description="sends a random song from a spotify album/playlist")
     async def spotify(self, ctx: commands.Context, url):
         song, apiResult = await SpotifySong(url)
         # logic to choose between album and playlist
@@ -121,11 +122,17 @@ class Scrapers(commands.Cog):
 
 
     #TODO: cmd to display latest post
+    @commands.command(aliases=["bsky","bluesky","latestpost"], description="fetches last bsky post")
+    async def latest(self, ctx: commands.Context):
+        tweets = await getLastPost()
+        latest_tweet = tweets[0]
+        tweetID = latest_tweet.id
+        await ctx.send(f"https://x.com/AWESOMECOOLBOT/status/{tweetID}")
 
         
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        # maybe have list of messages to ignore once threshold is reached
+        # maybe have list of messages to ignore once react threshold is reached
 
         channel = self.bot.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
@@ -138,8 +145,49 @@ class Scrapers(commands.Cog):
             for reaction in reactions:
                 if str(reaction.emoji) == "🚎":
                     if reaction.count == self.reactionsNeeded:
-                        await channel.send("troll (fake)")
-                        await postMessage(message.content)
+                        print("posting message")
+                        #await channel.send("troll (fake)")
+
+                        if message.attachments:# attachment in msg
+                            attachment = message.attachments[0]
+                            async with aiohttp.ClientSession() as session:
+                                async with session.get(attachment.url) as mediaFile:
+                                    if mediaFile.status == 200:
+                                        data = io.BytesIO(await mediaFile.read())
+                                        with open(f"files/images/{attachment.filename}","wb") as file:
+                                            file.write(data.getbuffer())
+
+                            if attachment.filename.lower().endswith(('png','jpg','jpeg','gif')):
+                                # file is an image
+                                img = f"files/images/{attachment.filename}"
+                                if message.content:
+                                    content = f"{message.content} - {message.author.name}"
+                                    await postMessage(message=content, attachment=img, username=message.author.name)
+                                else:
+                                    await postMessage(attachment=img, username=message.author.name)
+
+                            elif attachment.filename.lower().endswith(('mp4','webm','mov')):
+                                # file is a video
+                                video = f"files/images/{attachment.filename}"
+                                await postMessage(attachment=img)
+                                if message.content:
+                                    content = f"{message.content} - {message.author.name}"
+                                    await postMessage(message=message.content, attachment=video, username=message.author.name)
+                                else:
+                                    await postMessage(attachment=video, username=message.author.name)
+
+                        elif message.content.startswith("http"):# url in msg
+                            async with aiohttp.ClientSession() as session:
+                                async with session.get(message.content) as mediaFile:
+                                    if mediaFile.status == 200:
+                                        data = io.BytesIO(await mediaFile.read())
+                                        with open(f"files/images/{attachment.filename}","wb") as file:
+                                            file.write(data.getbuffer())
+                            
+                            #if attachment
+
+                        else:# no url or attachment in msg    
+                            await postMessage(f"{message.content} - {message.author.name}")
                         # end loop since correct emoji found
                         break
 
