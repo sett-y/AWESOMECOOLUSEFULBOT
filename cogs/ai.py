@@ -8,7 +8,7 @@ class AI(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=["sp"], description="generate a response based on prompt given (history is per server)")
+    @commands.command(aliases=["sp","p"], description="generate a response based on prompt given (history is per server)")
     async def prompt(self, ctx: commands.Context, *, arg):
         await ctx.send("generating response...")
         try:
@@ -89,10 +89,11 @@ class AI(commands.Cog):
         else:
             await ctx.send(history)
 
-    @commands.command()
+    @commands.command(aliases=["cgh"])
     @commands.is_owner()
     async def clearGlobalHistory(self, ctx: commands.Context):
         await api.clearGlobalHistory()
+        await ctx.send("global history cleared")
 
     @commands.command(description="server context history")
     async def history(self, ctx: commands.Context):
@@ -110,10 +111,11 @@ class AI(commands.Cog):
         else:
             await ctx.send(history)
 
-    @commands.command()
+    @commands.command(aliases=["csh"])
     @commands.is_owner()
     async def clearServerHistory(self, ctx: commands.Context):
         await api.clearServerHistory(ctx)
+        await ctx.send("server history cleared")
 
     async def get_last_messages(self, ctx: commands.Context, n) -> list[str]:
         messages = []
