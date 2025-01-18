@@ -9,9 +9,10 @@ client = AsyncClient()
 async def postMessage(message=None, attachment=None, username=None):
     await client.login(login=bsky_username,password=bsky_password)
     # filter bad words
-    badword = r"n+i+g+e+r+"
-    message = re.sub(badword,"friend",message,flags=re.IGNORECASE)
-    #TODO for loop checking for multiple words
+    if message:
+        badword = r"n+i+g+e+r+"
+        message = re.sub(badword,"friend",message,flags=re.IGNORECASE)
+    #TODO: for loop checking for multiple words
 
     if message and attachment:# text and image/video
         with open(attachment,'rb') as file:
