@@ -2,19 +2,22 @@ from discord.ext import commands
 import discord
 import python_weather
 import random
+import io
+import os
 import scripts.reminder as reminder
-from scripts.botimp import bot
+#from scripts.botimp import bot
 from PIL import Image, ImageDraw, ImageFont
 
 #TODO: bot randomly reacts to messages with random emoji
 
 class Fun(commands.Cog):
     def __init__(self, bot):
-        self.bot = bot
+        self.bot: discord.Bot = bot
+        self.avatarVote = {} # store messages w/ active votes here
 
     @commands.command(description="repeats user's message", aliases=["print"])
     async def echo(self, ctx: commands.Context, *, arg):
-        #TODO: needs perms
+        # needs perms
         await ctx.message.delete()
         await ctx.send(arg)
 
@@ -56,7 +59,7 @@ class Fun(commands.Cog):
         #user input for time
         try:
             await ctx.send("enter time")
-            reminderTime = await bot.wait_for("message", check = lambda msg: msg.author == ctx.author, timeout=60.0)
+            reminderTime = await self.wait_for("message", check = lambda msg: msg.author == ctx.author, timeout=60.0)
         except Exception as e:
             print(e)
             await ctx.send(e)
@@ -105,6 +108,10 @@ class Fun(commands.Cog):
         #:emoji_name:
         await ctx.send(new_fart)
 
+    #TODO: fart config
+    # ALTER TABLE guild_
+    # ADD fart TEXT
+
     @commands.command(description="adds impact font to an image")
     async def impact(self, ctx: commands.Context, message: discord.Message):
         dscImg = message.attachments[0].url
@@ -115,6 +122,33 @@ class Fun(commands.Cog):
         #print(f"{image.format} {image.size}")
 
         #ImageFont
+
+    @commands.command(aliases=["voteavatar","votepfp"])
+    async def vote(self, ctx: commands.Context):
+        if ctx.message.attachments[0]:
+            avatar = ctx.message.attachments[0].url
+            self.avatarVote[ctx.message.id] = avatar
+            await ctx.message.add_reaction("👆")
+        else:
+            await ctx.send("include an image with command")
+
+    @commands.Cog.listener()
+    async def on_reaction_add(self, reaction: discord.Reaction, user: discord.Member):
+        messageID = reaction.message.id
+        attachment = reaction.message.attachments[0]
+        if messageID in self.avatarVote and reaction.emoji == "👆":
+            if reaction.count >= 5:
+                async with self.bot.session.get(attachment.url) as avatar:
+                    if avatar.status == 200:
+                        # avatar param wants bytes object, so aiohttp read() method is perfect
+                        await self.bot.user.edit(avatar=await avatar.read())
+                        print("avatar changed")
+
+    @commands.command() # test
+    async def tuah(self, ctx: commands.Context):
+        await ctx.send(self.bot.hawk)
+        print(type(self.bot.hawk))
+        print(type(self.bot.session))
 
     """
         idea: userphone-like command that searches for connection to another server,
