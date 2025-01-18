@@ -8,9 +8,11 @@ import aiohttp
 import wavelink
 import logging
 import random
-from typing import Optional
 
 #TODO: custom prefixes (per server)
+#TODO: block users
+#TODO: image manipulation cmds
+#lru_cache - saves N recent function calls
 
 # important functions: ctx.channel | ctx.channel.history
 # history contains messages
@@ -18,17 +20,15 @@ from typing import Optional
 
 class AwesomeBot(commands.Bot):
     hawk: str
-    session: Optional[aiohttp.ClientSession]
+    session: aiohttp.ClientSession
 
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
         super().__init__(command_prefix=[">","bc"], intents=intents)
         self.hawk = "hawk"
-        self.session = None # aiohttp session
-
-        # logging
-        self.logger = logging.basicConfig(level=logging.INFO)
+        self.session: aiohttp.ClientSession = None # aiohttp session
+        self.logger = logging.basicConfig(level=logging.INFO) # logging
 
     async def load_extensions(self):
         for filename in os.listdir('./cogs'):
@@ -59,20 +59,21 @@ async def shutdown(ctx: commands.Context):
 
 @bot.command(description="restarts bot (owner only)")
 @commands.is_owner()
-async def restart(ctx):
+async def restart(ctx: commands.Context):
     print("restarting")
+    #await bot.session.close()
     embed = discord.Embed(title=":white_check_mark: restarting :white_check_mark:")
     await ctx.send(embed=embed)
     os.execv(sys.executable, ['python'] + sys.argv)
 
 @bot.command()
 @commands.is_owner()
-async def reload(ctx, arg):
+async def reload(ctx: commands.Context, arg):
     await bot.reload_extension(f"cogs.{arg}")
     await ctx.send(f"reloading extension: {arg}")
 
 @bot.command(description="displays list of commands w/ descriptions")
-async def commandlist(ctx):
+async def commandlist(ctx: commands.Context):
     text = "```List of all bot commands:\n"
     for command in bot.commands:
         text += f">{command.name}"
@@ -82,6 +83,10 @@ async def commandlist(ctx):
             text += '\n'
     text += "```"
     await ctx.send(text)
+
+#@bot.check_once
+#async def blacklist(ctx: commands.Context):
+    # check database for user id
 
 async def on_message(message: discord.Message):
     if message.author == bot.user:
