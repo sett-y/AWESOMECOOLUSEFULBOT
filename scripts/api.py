@@ -103,6 +103,16 @@ async def genericPrompt(ctx: commands.Context, prompt) -> str:
 
     return response.text
 
+async def singlePrompt(prompt):
+    model_config = genai.GenerationConfig(temperature=1.8)
+    genai.configure(api_key=scripts.config.genai_token)
+    model = genai.GenerativeModel("gemini-2.0-flash-exp", generation_config=model_config)
+    print("generating single prompt...")
+
+    response = await model.generate_content_async(prompt)
+
+    return response.text
+
 async def fortune() -> str:
     prompt = "write a fortune one would find in a fortune cookie.\
     try to make it creative, some of the advice should be somewhat specific.\
@@ -141,7 +151,7 @@ async def asciiArt(prompt) -> str:
 
 
 async def oppositePrompt(prompt) -> str:
-    model_config = genai.GenerationConfig(temperature=2.0,top_k=1,top_p=1)
+    model_config = genai.GenerationConfig(temperature=1.7,top_k=1,top_p=1)
 
     genai.configure(api_key=scripts.config.genai_token)
     model = genai.GenerativeModel("gemini-2.0-flash-exp", generation_config=model_config)

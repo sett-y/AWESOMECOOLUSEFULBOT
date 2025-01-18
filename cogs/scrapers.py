@@ -4,7 +4,6 @@ import PIL
 import random
 import datetime
 import io
-import aiohttp
 import scripts.catFacts as catFacts
 import scripts.scraper as scraper
 from scripts.robloxscrape import get_gamedata
@@ -120,15 +119,11 @@ class Scrapers(commands.Cog):
         else:
             print("input is neither playlist nor album")
 
-
     #TODO: cmd to display latest post
     @commands.command(aliases=["bsky","bluesky","latestpost"], description="fetches last bsky post")
     async def latest(self, ctx: commands.Context):
-        tweets = await getLastPost()
-        latest_tweet = tweets[0]
-        tweetID = latest_tweet.id
-        await ctx.send(f"https://x.com/AWESOMECOOLBOT/status/{tweetID}")
-
+        post = await getLastPost()
+        await ctx.send(post)
         
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -137,27 +132,38 @@ class Scrapers(commands.Cog):
         channel = self.bot.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
         reactions = message.reactions
+        
+        """table_name = f"guild_{message.guild.id}"
+        con = sqlite3.connect("files/config.db")
+        cur = con.cursor()
+        query = f'''
+        SELECT emoji from {table_name}
+        '''
+        guildEmoji = cur.execute(query).fetchall()
 
-        if message.author.id == self.bot.user.id:
-            return
+        if guildEmoji:
+            react_emoji = guildEmoji[0]
+        else:
+            react_emoji = "🚎"""
+
+        #if message.author.id == self.bot.user.id:
+        #    return
 
         if str(payload.emoji) == "🚎":
             for reaction in reactions:
                 if str(reaction.emoji) == "🚎":
                     if reaction.count == self.reactionsNeeded:
                         print("posting message")
-                        #await channel.send("troll (fake)")
 
                         if message.attachments:# attachment in msg
                             attachment = message.attachments[0]
-                            async with aiohttp.ClientSession() as session:
-                                async with session.get(attachment.url) as mediaFile:
-                                    if mediaFile.status == 200:
-                                        data = io.BytesIO(await mediaFile.read())
-                                        with open(f"files/images/{attachment.filename}","wb") as file:
-                                            file.write(data.getbuffer())
+                            async with self.bot.session.get(attachment.url) as mediaFile:
+                                if mediaFile.status == 200:
+                                    data = io.BytesIO(await mediaFile.read())
+                                    with open(f"files/images/{attachment.filename}","wb") as file:
+                                        file.write(data.getbuffer())
 
-                            if attachment.filename.lower().endswith(('png','jpg','jpeg','gif')):
+                            if attachment.filename.lower().endswith(('png','jpg','jpeg','webp')):
                                 # file is an image
                                 img = f"files/images/{attachment.filename}"
                                 if message.content:
@@ -166,30 +172,30 @@ class Scrapers(commands.Cog):
                                 else:
                                     await postMessage(attachment=img, username=message.author.name)
 
-                            elif attachment.filename.lower().endswith(('mp4','webm','mov')):
+                            elif attachment.filename.lower().endswith(('mp4','webm','mov','gif')):
                                 # file is a video
                                 video = f"files/images/{attachment.filename}"
-                                await postMessage(attachment=img)
+                                #await postMessage(attachment=video)
                                 if message.content:
                                     content = f"{message.content} - {message.author.name}"
                                     await postMessage(message=message.content, attachment=video, username=message.author.name)
                                 else:
                                     await postMessage(attachment=video, username=message.author.name)
 
-                        elif message.content.startswith("http"):# url in msg
-                            async with aiohttp.ClientSession() as session:
-                                async with session.get(message.content) as mediaFile:
-                                    if mediaFile.status == 200:
-                                        data = io.BytesIO(await mediaFile.read())
-                                        with open(f"files/images/{attachment.filename}","wb") as file:
-                                            file.write(data.getbuffer())
-                            
-                            #if attachment
-
                         else:# no url or attachment in msg    
                             await postMessage(f"{message.content} - {message.author.name}")
                         # end loop since correct emoji found
                         break
+
+                        """elif message.content.startswith("http"):# url in msg
+                            async with self.bot.session.get(message.content) as mediaFile:
+                                if mediaFile.status == 200:
+                                    data = io.BytesIO(await mediaFile.read())
+                                    with open(f"files/images/{attachment.filename}","wb") as file:
+                                        file.write(data.getbuffer())
+                            
+                            #if attachment"""
+
 
     # i dont think this works
     @tasks.loop(time=datetime.time(hour=5, minute=41))

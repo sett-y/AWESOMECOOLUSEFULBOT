@@ -55,32 +55,71 @@ class Util(commands.Cog):
         await ctx.send(f"https://en.wikipedia.org/wiki/{search}")
 
     # table layout: guild id table name | keys (server config vars)
-    @commands.command()
+    @commands.command(aliases=["setreact","changereact"])
     async def switchreact(self, ctx: commands.Context, userEmoji):
         con = sqlite3.connect("files/configs.db")
         # cursor to interact w/ database
         cur = con.cursor()
 
-        query = '''
-        SELECT emoji FROM sqlite_master
-        WHERE type='table' AND name=?
+        table_name = f"guild_{ctx.guild.id}"
 
+        query = '''
+        SELECT name FROM sqlite_master
+        WHERE type='table' AND name=?
         '''
-        guildID = ctx.guild.id
 
         # checks if table exists
-        guildTable = cur.execute(query,(guildID)).fetchall()
+        guildTable = cur.execute(query,(table_name,)).fetchall()
 
         # if table doesnt exist
-        if guildTable == []:
-            cur.execute("CREATE TABLE ? (emoji)",(guildID))
+        if not guildTable:
+            print("creating table")
+            query = f'''
+            CREATE TABLE {table_name} (emoji TEXT)
+            '''
+            cur.execute(query)
+            # insert into table
+            print("inserting into table")
+            query = f'''
+            INSERT INTO {table_name} (emoji)
+            VALUES (?)
+            '''
+            cur.execute(query,(userEmoji,))
+            await ctx.send(f"{userEmoji}")
         # access existing table
         else:
-            pass
-
+            # delete values from table column
+            print("clearing column data")
+            delquery = f'''
+            UPDATE {table_name}
+            SET emoji = ?
+            '''
+            cur.execute(delquery,(userEmoji,))
+            await ctx.send(f"{userEmoji}")
+            
         con.commit()
         con.close()
 
+    @commands.command(aliases=["db"])
+    @commands.is_owner()
+    async def database(self, ctx: commands.Context):
+        #table_name = f"guild_{ctx.guild.id}"
+        con = sqlite3.connect("files/configs.db")
+        cur = con.cursor()
+        query = f'''
+        SELECT name FROM sqlite_master WHERE type='table'
+        '''
+        dbStr = cur.execute(query).fetchall()
+        #await ctx.send(dbStr)
+
+        dbFull = []
+        # formatting like this auto unpacks the tuple
+        for (table_name,) in dbStr:
+            dbFull.append(table_name)
+            dbFull.append(cur.execute(f"SELECT * FROM {table_name}").fetchall())
+
+        result = '\n'.join(str(x) for x in dbFull)
+        await ctx.send(result)
 
 
 def setup(bot):
