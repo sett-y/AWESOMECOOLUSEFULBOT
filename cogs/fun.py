@@ -125,30 +125,55 @@ class Fun(commands.Cog):
 
     @commands.command(aliases=["voteavatar","votepfp"])
     async def vote(self, ctx: commands.Context):
-        if ctx.message.attachments[0]:
-            avatar = ctx.message.attachments[0].url
-            self.avatarVote[ctx.message.id] = avatar
+        if ctx.message.attachments:
+            self.avatarVote[ctx.message.id] = ctx.message.attachments[0].url
             await ctx.message.add_reaction("👆")
+            print("vote registered")
+        elif "http" in ctx.message.content:
+            self.avatarVote[ctx.message.id] = ctx.message.content.strip()
+            await ctx.message.add_reaction("👆")
+            print("vote registered")
         else:
             await ctx.send("include an image with command")
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction: discord.Reaction, user: discord.Member):
         messageID = reaction.message.id
-        attachment = reaction.message.attachments[0]
+        #attachment = reaction.message.attachments[0]
+        content = reaction.message.content
+        # checks if reacted message id has been recorded with vote command
         if messageID in self.avatarVote and reaction.emoji == "👆":
-            if reaction.count >= 5:
-                async with self.bot.session.get(attachment.url) as avatar:
-                    if avatar.status == 200:
-                        # avatar param wants bytes object, so aiohttp read() method is perfect
-                        await self.bot.user.edit(avatar=await avatar.read())
-                        print("avatar changed")
+            if reaction.count >= 2:
+                if reaction.message.attachments:
+                    async with self.bot.session.get(reaction.message.attachments[0].url) as avatar:
+                        if avatar.status == 200:
+                            # avatar param wants bytes object, so aiohttp read() method is perfect
+                            # can also use avatar.text, avatar.content.iter_chunked(chunk_size) to save to file
+                            await self.bot.user.edit(avatar=await avatar.read())
+                            print("avatar changed")
+                            await reaction.message.channel.send("yippee new avatar")
+                        else:
+                            await reaction.message.channel.send("could not download attachment")
+                elif "http" in content:
+                    start = len(">vote ")
+                    content = content[start:]
+                    async with self.bot.session.get(content.strip()) as avatar:
+                        if avatar.status == 200:
+                            await self.bot.user.edit(avatar=await avatar.read())
+                            print("avatar changed")
+                            await reaction.message.channel.send("yippee new avatar")
+                        else:
+                            await reaction.message.channel.send("could not download attachment")
+                else:
+                    print("invalid message content")
+                    await reaction.message.channel.send("only include an attachment or link in message")
 
-    @commands.command() # test
-    async def tuah(self, ctx: commands.Context):
-        await ctx.send(self.bot.hawk)
-        print(type(self.bot.hawk))
-        print(type(self.bot.session))
+    @commands.command(description="get a random useless fact")
+    async def fact(self, ctx: commands.Context):
+        async with self.bot.session.get("https://uselessfacts.jsph.pl/api/v2/facts/random",
+                                        headers={"Accept": "text/plain"}) as fact:
+            data = await fact.text()
+            await ctx.send(data)
 
     """
         idea: userphone-like command that searches for connection to another server,
