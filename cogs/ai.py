@@ -8,7 +8,7 @@ class AI(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=["sp","p"], description="generate a response based on prompt given (history is per server)")
+    @commands.command(aliases=["serverprompt","p"], description="generate a response based on prompt given (history is per server)")
     async def prompt(self, ctx: commands.Context, *, arg):
         await ctx.send("generating response...")
         try:
@@ -34,7 +34,7 @@ class AI(commands.Cog):
         
         await self.sendResponse(ctx, response)
 
-    @commands.command(description="generate an EVIL response based on prompt given")
+    @commands.command(aliases=["ap"], description="generate an EVIL response based on prompt given")
     async def antiprompt(self, ctx: commands.Context, *, arg):
         await ctx.send("generating EVIL response...")
         response = await api.oppositePrompt(arg)
@@ -131,7 +131,11 @@ class AI(commands.Cog):
         n = int(n)
         # check for valid user input
         if not isinstance(n, int) or n < 0:
-            await ctx.send("the summarize command's parameter can only be a positive integer.")
+            await ctx.send("parameter can only be a positive integer.")
+            return
+        
+        if n > 1000:
+            await ctx.send("no")
             return
 
         messages = await self.get_last_messages(ctx, n)
@@ -142,12 +146,21 @@ class AI(commands.Cog):
         await ctx.send("generating response...")
         response = await api.summarize(history)
 
-        await ctx.send(response)
+        if len(response) > 2000 and len(response) < 8000:
+            with open("summary.txt","w") as file:
+                file.write(response)
+            await ctx.send(file=discord.File("summary.txt"))
+            os.remove(f"{os.getcwd()}\\summary.txt")
+        elif len(response) < 2000:
+            await ctx.send(response)
+        else:
+            await ctx.send("too dam long idiot")
 
     @commands.command() # gemini image editing
     async def image(self, ctx: commands.Context, *, arg):
         pass
 
+    # votes to clear server context history
     @commands.command()
     async def voteclear(self, ctx: commands.Context):
         pass
@@ -165,6 +178,13 @@ class AI(commands.Cog):
     @commands.is_owner()
     async def clear(self, ctx: commands.Context):
         pass
+
+    @commands.command(aliases=["sp"])
+    async def singleprompt(self, ctx: commands.Context, *, arg):
+        await ctx.send("generating response...")
+        response = await api.singlePrompt(arg)
+
+        await self.sendResponse(ctx, response)
 
 def setup(bot):
     bot.add_cog(AI(bot))
