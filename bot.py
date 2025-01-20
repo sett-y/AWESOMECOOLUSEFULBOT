@@ -8,11 +8,14 @@ import aiohttp
 import wavelink
 import logging
 import random
+#import tracemalloc
 
 #TODO: custom prefixes (per server)
 #TODO: block users
 #TODO: image manipulation cmds
 #lru_cache - saves N recent function calls
+#islice - slices iterable, good for pagination
+#single dispatch - overload function to take multiple types
 
 # important functions: ctx.channel | ctx.channel.history
 # history contains messages
@@ -117,6 +120,14 @@ async def on_guild_emojis_update(guild: discord.Guild, before, after):
 async def on_member_join(member: discord.Member):
     await member.guild.system_channel.send(f"hi {member}")
 
+@bot.event
+async def on_command_error(ctx: commands.Context, error):
+    if ctx.cog:
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.send("command on cooldown")
+    #await ctx.send(error)
+    #if isinstance(error, commands.CommandOnCooldown):
+    #    await ctx.send("command on cooldown")
 
 async def main():
     async with bot:
