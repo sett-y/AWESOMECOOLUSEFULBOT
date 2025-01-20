@@ -4,12 +4,15 @@ import PIL
 import random
 import datetime
 import io
+import sqlite3
+from bs4 import BeautifulSoup
 import scripts.catFacts as catFacts
 import scripts.scraper as scraper
 from scripts.robloxscrape import get_gamedata
 from scripts.YoutubeSearch import youtubeSearch
 from scripts.SongOfTheDay import SpotifySong
 from scripts.TwitterBot import postMessage, getLastPost
+from scripts.helpers.db_helpers import return_guild_emoji
 
 
 class Scrapers(commands.Cog):
@@ -132,26 +135,15 @@ class Scrapers(commands.Cog):
         channel = self.bot.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
         reactions = message.reactions
-        
-        """table_name = f"guild_{message.guild.id}"
-        con = sqlite3.connect("files/config.db")
-        cur = con.cursor()
-        query = f'''
-        SELECT emoji from {table_name}
-        '''
-        guildEmoji = cur.execute(query).fetchall()
 
-        if guildEmoji:
-            react_emoji = guildEmoji[0]
-        else:
-            react_emoji = "🚎"""
+        react_emoji = await return_guild_emoji(payload.guild_id, "🚎")
 
         #if message.author.id == self.bot.user.id:
         #    return
 
-        if str(payload.emoji) == "🚎":
+        if str(payload.emoji) == react_emoji:
             for reaction in reactions:
-                if str(reaction.emoji) == "🚎":
+                if str(reaction.emoji) == react_emoji:
                     if reaction.count == self.reactionsNeeded:
                         print("posting message")
 
@@ -196,9 +188,7 @@ class Scrapers(commands.Cog):
                             
                             #if attachment"""
 
-
-    # i dont think this works
-    @tasks.loop(time=datetime.time(hour=5, minute=41))
+    @tasks.loop(time=datetime.time(hour=16, minute=20))
     async def dailySong(self, ctx: commands.Context):
         channel = self.bot.get_channel(684575538957910055)
         song = await SpotifySong("https://open.spotify.com/playlist/04mZkGQA7QgVt3SPHuob76?si=AYE-9WXlSUOaixoMER3SZw")
@@ -209,6 +199,54 @@ class Scrapers(commands.Cog):
 
         await channel.send(choice)
 
+    @dailySong.before_loop
+    async def before_dailySong(self):
+        await self.bot.wait_until_ready()
+
+    @commands.command(aliases=["apod","astronomy"], description="Astronomy Picture of the Day")
+    async def nasa(self, ctx: commands.Context):
+        embed = discord.Embed(title="Astronomy Picture of the Day", color=discord.Color.blurple())
+
+        #url = "https://apod.nasa.gov/apod/ap150122.html"
+        apod_url = "https://apod.nasa.gov/apod/"
+        async with self.bot.session.get(apod_url) as response:
+            soup = BeautifulSoup(await response.text(), "html.parser")
+            iframe = soup.find("iframe")
+            image = soup.find("img")
+
+            # scrape text
+            description = soup.select('p > b')
+            parent = description[0]
+            desc = parent.parent
+            description_split = desc.text.split(sep="Tomorrow's")
+            description_split_newline = description_split[0].replace('\n',' ')
+            
+            embed.add_field(name="Website:", value="https://apod.nasa.gov/apod/",
+                            inline=False)
+            embed.add_field(name="Description:",
+                            value=description_split_newline)
+            thumbnail = discord.File(fp="files/images/apod.png", filename="apod.png")
+            embed.set_thumbnail(url="attachment://apod.png")
+
+            # check if they exist
+            if iframe is not None:
+                print("looking for youtube link")
+                await ctx.send(embed=embed, file=thumbnail)
+                await ctx.send(iframe['src'])
+                print("link sent")
+            elif image is not None:
+                print("looking for image src")
+                await ctx.send(embed=embed, file=thumbnail)
+                await ctx.send(apod_url + image['src'])
+                print("image sent")
+            else:
+                print("source is of a different media type")
+
+    @commands.command(aliases=["nasaarchive","apoda","aa"])
+    async def apodarchive(self, ctx: commands.Context):
+        url = "https://apod.nasa.gov/apod/archivepix.html"
+        
+            
 
 def setup(bot):
     bot.add_cog(Scrapers(bot))

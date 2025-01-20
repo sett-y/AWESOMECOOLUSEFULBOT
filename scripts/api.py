@@ -2,14 +2,10 @@ import google.generativeai as genai
 import scripts.config
 from discord.ext import commands
 
-#TODO: replace contextList with dictionary that generates a list named after the current server id,
-# if this id isnt an element yet. each list will hold the history of its respective server.
-# remember to append a letter/underscore to list name.
-# implement clearHistory function to clear a specific server's prompt history (depopulate list)
-# ctx.guild.id
+#TODO: open movie database
+#TODO: weather
 #TODO: owner only command that switches llm api
 #TODO: image analysis, maybe add to prompt instead of new command
-#TODO: global prompt, adds prompt to all history lists
 
 contextList = []
 contextDict = {} # dict that holds all histories

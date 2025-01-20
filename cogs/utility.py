@@ -2,7 +2,7 @@ from discord.ext import commands
 import discord
 from scripts.googlescrape import get_search
 import sqlite3
-import os
+from scripts.helpers.db_helpers import return_guild_emoji
 
 class Util(commands.Cog):
     def __init__(self, bot):
@@ -93,7 +93,7 @@ class Util(commands.Cog):
             delquery = f'''
             UPDATE {table_name}
             SET emoji = ?
-            '''
+            ''' # no WHERE because table will only have 1 emoji column
             cur.execute(delquery,(userEmoji,))
             await ctx.send(f"{userEmoji}")
             
@@ -103,7 +103,7 @@ class Util(commands.Cog):
     @commands.command(aliases=["db"])
     @commands.is_owner()
     async def database(self, ctx: commands.Context):
-        #table_name = f"guild_{ctx.guild.id}"
+        embed = discord.Embed(title="database")
         con = sqlite3.connect("files/configs.db")
         cur = con.cursor()
         query = f'''
@@ -119,7 +119,12 @@ class Util(commands.Cog):
             dbFull.append(cur.execute(f"SELECT * FROM {table_name}").fetchall())
 
         result = '\n'.join(str(x) for x in dbFull)
-        await ctx.send(result)
+        embed.add_field(name="",value=result)
+        await ctx.send(embed=embed)
+
+    @commands.command(description="checks the emoji used for guild votes and bluesky posts")
+    async def check_guild_emoji(self, ctx: commands.Context):
+        await ctx.send(await return_guild_emoji(ctx))
 
 
 def setup(bot):
