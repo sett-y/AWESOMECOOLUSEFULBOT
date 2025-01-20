@@ -10,9 +10,9 @@ class AI(commands.Cog):
 
     @commands.command(aliases=["serverprompt","p"], description="generate a response based on prompt given (history is per server)")
     async def prompt(self, ctx: commands.Context, *, arg):
-        await ctx.send("generating response...")
         try:
-            response = await api.serverPrompt(ctx, arg)
+            async with ctx.channel.typing():
+                response = await api.serverPrompt(ctx, arg)
         except ValueError:
             await ctx.send("[message blocked retard]")
             print("message blocked")
@@ -25,8 +25,12 @@ class AI(commands.Cog):
         
     @commands.command(aliases=["gemini","ai"], description="generate a response based on prompt given")
     async def globalprompt(self, ctx: commands.Context, *, arg):
-        await ctx.send("generating response...")
-        response = await api.genericPrompt(ctx, arg)
+        try:
+            async with ctx.channel.typing():
+                response = await api.genericPrompt(ctx, arg)
+        except ValueError:
+            await ctx.send("[message blocked retard]")
+            print("message blocked")
         if response:
             print("response generated")
         else:
@@ -37,7 +41,12 @@ class AI(commands.Cog):
     @commands.command(aliases=["ap"], description="generate an EVIL response based on prompt given")
     async def antiprompt(self, ctx: commands.Context, *, arg):
         await ctx.send("generating EVIL response...")
-        response = await api.oppositePrompt(arg)
+        try:
+            async with ctx.channel.typing():
+                response = await api.oppositePrompt(arg)
+        except ValueError:
+            await ctx.send("[message blocked retard]")
+            print("message blocked")
         if response:
             print("response generated")
         else:
@@ -61,7 +70,12 @@ class AI(commands.Cog):
     @commands.command(name="fortune", description="prompt google gemini to generate a fortune")
     async def fortunecookie(self, ctx: commands.Context):
         await ctx.send("reading fortune...")
-        fortune = await api.fortune()
+        try:
+            async with ctx.channel.typing():
+                fortune = await api.fortune()
+        except ValueError:
+            await ctx.send("[message blocked retard]")
+            print("message blocked")
         print("generated")
         await ctx.send(f"🥠 {fortune} 🥠")
 
@@ -126,7 +140,8 @@ class AI(commands.Cog):
         messages.reverse()
         return messages
 
-    @commands.command(description="google gemini summarizes N recent chat messages") 
+    @commands.command(description="google gemini summarizes N recent chat messages")
+    @commands.cooldown(1, 2, commands.BucketType.user)
     async def summarize(self, ctx: commands.Context, n: int):
         n = int(n)
         # check for valid user input
@@ -137,14 +152,14 @@ class AI(commands.Cog):
         if n > 1000:
             await ctx.send("no")
             return
+        
+        async with ctx.channel.typing():
+            messages = await self.get_last_messages(ctx, n)
+            print("messages scraped")
 
-        messages = await self.get_last_messages(ctx, n)
-        print("messages scraped")
-
-        history = '\n'.join(str(x) for x in messages)
-
-        await ctx.send("generating response...")
-        response = await api.summarize(history)
+            history = '\n'.join(str(x) for x in messages)
+        
+            response = await api.summarize(history)
 
         if len(response) > 2000 and len(response) < 8000:
             with open("summary.txt","w") as file:
@@ -171,8 +186,9 @@ class AI(commands.Cog):
         #if lang != ('com.au' and 'zh-CN'):
         #    await ctx.send("Language Invalid!")
         #    return
-        await voicegen.main(message, lang)
-        await ctx.send(file=discord.File("scripts/voicegeneration/gen.mp3"))
+        async with ctx.channel.typing():
+            await voicegen.main(message, lang)
+            await ctx.send(file=discord.File("scripts/voicegeneration/gen.mp3"))
 
     @commands.command(description="clears all gemini context history")
     @commands.is_owner()
@@ -181,8 +197,12 @@ class AI(commands.Cog):
 
     @commands.command(aliases=["sp"])
     async def singleprompt(self, ctx: commands.Context, *, arg):
-        await ctx.send("generating response...")
-        response = await api.singlePrompt(arg)
+        try:
+            async with ctx.channel.typing():
+                response = await api.singlePrompt(arg)
+        except ValueError:
+            await ctx.send("[message blocked retard]")
+            print("message blocked")
 
         await self.sendResponse(ctx, response)
 
