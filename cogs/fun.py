@@ -3,10 +3,15 @@ import discord
 import python_weather
 import random
 import scripts.reminder as reminder
-import os
-#from PIL import Image, ImageDraw, ImageFont
+import io
+from PIL import Image, ImageDraw, ImageFont, ImageEnhance
+from scripts.helpers.image_helpers import check_image
 
 #TODO: profiles
+
+#class FunFlags(commands.FlagConverter, prefix='-', delimiter=' '):
+#    width: int = commands.flag(default=150)
+#    height: int = commands.flag(default=150)
 
 class Fun(commands.Cog):
     def __init__(self, bot):
@@ -142,6 +147,8 @@ class Fun(commands.Cog):
         messageID = reaction.message.id
         content = reaction.message.content
 
+        #TODO: delete files after saving
+
         guild_emoji = "👆"
 
         # checks if reacted message id has been recorded with vote command
@@ -177,6 +184,142 @@ class Fun(commands.Cog):
                                         headers={"Accept": "text/plain"}) as fact:
             data = await fact.text()
             await ctx.send(data)
+
+    @commands.command(aliases=["flipimage"])
+    async def flip(self, ctx: commands.Context, url: str = None):
+        async with ctx.channel.typing():
+            attachment_file = await check_image(ctx, url)
+
+            async with self.bot.session.get(attachment_file) as attach:
+                image_data = await attach.read()
+                print("image data loaded")
+
+                if image_data:
+                    im = Image.open(io.BytesIO(image_data)) # container for binary data, treated like file
+                else:
+                    await ctx.send("invalid image")
+
+                buffer = io.BytesIO() # file object to save image into
+                transpose = im.transpose(Image.FLIP_TOP_BOTTOM)
+                transpose.save(buffer, 'PNG') # saves data into buffer
+                buffer.seek(0) # saving puts seek at last byte, so this resets it
+                await ctx.send(file=discord.File(buffer, "image.png"))
+                buffer.close()
+                #with io.BytesIO() as binary_image:
+
+    @commands.command(name="balls")
+    async def balls(self, ctx: commands.Context, url: str = None):
+        ball = Image.open("files/images/balls.webp")
+        buffer = io.BytesIO()
+        attachment_file = await check_image(ctx, url)
+
+        async with ctx.channel.typing():
+            async with self.bot.session.get(attachment_file) as attach:
+                image_data = await attach.read()
+                if image_data:
+                    im = Image.open(io.BytesIO(image_data))
+
+                    im.paste(ball, (100, 100)) # returns None, check docs from now on
+                    im.save(buffer, 'PNG')
+                    buffer.seek(0)
+                    await ctx.send(file=discord.File(buffer, "balls.png"))
+                    buffer.close()
+
+    @commands.command(name="quote", description="generates a real quote by a user")
+    async def quoteuser(self, ctx: commands.Context, member: discord.Member = None,
+                        *, message: str = None):
+        if message is None:
+            await ctx.send("include a quote idiot")
+            return
+        buffer = io.BytesIO()
+
+        async with ctx.channel.typing():
+            async with self.bot.session.get(member.avatar.url) as avatar:
+                if avatar.status != 200:
+                    print("failed to fetch avatar")
+                member = member or ctx.author
+                image_data = await avatar.read()
+                avatar_image = Image.open(io.BytesIO(image_data))
+                avatar_image.thumbnail((150,150))
+
+                quote = Image.new(mode="RGB", size=(400,400))
+                draw = ImageDraw.Draw(quote)
+
+                font = ImageFont.truetype("files/fonts/0xProtoNerdFontMono-Regular.ttf", 25)
+
+                wrapped_message = ""
+                line_len = 0
+                max_len = 25
+                for word in message.split(' '):
+                    while len(word) > max_len:
+                        wrapped_message += word[:max_len] + '\n'
+                        word = word[max_len:]
+                        line_len = 0
+
+                    if line_len + len(word) > max_len:
+                        wrapped_message += f"\n{word} "
+                        line_len = len(word) + 1
+                    else:
+                        wrapped_message += f"{word} "
+                        line_len += len(word) + 1
+
+                user_quote = f"\"{wrapped_message}\"\n-{member.name}"
+                draw.text((0,0), user_quote, font=font) # text returns None
+
+                # paste avatar
+                quote.paste(avatar_image, (round(quote.width/3.5), quote.height//2))
+
+                quote.save(buffer, 'PNG')
+                buffer.seek(0)
+
+                await ctx.send(file=discord.File(buffer, "quote.png"))
+                buffer.close()
+
+    @commands.command()
+    async def editprofile(self, ctx: commands.Context):
+        pass
+
+    @commands.command(description="displays user profile")
+    async def profile(self, ctx: commands.Context):
+        pass
+
+    @commands.command(aliases=["mono"], description="changes image to black and white")
+    async def monochrome(self, ctx: commands.Context, url=None):
+        buffer = io.BytesIO()
+        attachment_file = await check_image(ctx, url)
+
+        async with ctx.channel.typing():
+            async with self.bot.session.get(attachment_file) as attach:
+                image_data = await attach.read()
+                im = Image.open(io.BytesIO(image_data))
+                mono = im.convert('L')
+                mono.save(buffer, "PNG")
+                buffer.seek(0)
+                await ctx.send(file=discord.File(buffer, "monochrome.png"))
+                buffer.close()
+
+    @commands.command()
+    async def contrast(self, ctx: commands.Context, url=None):
+        buffer = io.BytesIO()
+        attachment_file = await check_image(ctx, url)
+
+        async with ctx.channel.typing():
+            async with self.bot.session.get(attachment_file) as attach:
+                image_data = await attach.read()
+                im = Image.open(io.BytesIO(image_data))
+                
+                contrast_image = ImageEnhance.Contrast(im)
+                im = contrast_image.enhance(1.9)
+                #contrast_image2 = ImageEnhance.Sharpness()
+
+                bright = im.point(lambda i: i * 5)
+                bright.save(buffer, 'PNG')
+
+                buffer.seek(0)
+                await ctx.send(file=discord.File(buffer, "baked.png"))
+                buffer.close()
+
+# TODO: let users invoke commands on messages by replying to them
 
     """
         idea: userphone-like command that searches for connection to another server,

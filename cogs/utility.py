@@ -50,9 +50,12 @@ class Util(commands.Cog):
         cmdList = ''.join(str(c) for c in commandList)
         await ctx.send(cmdList)
 
-    @commands.command(aliases=["wikipedia","wikisearch"], description="searches wikipedia")
-    async def wiki(self, ctx: commands.Context, *, search):
-        await ctx.send(f"https://en.wikipedia.org/wiki/{search}")
+    @commands.command(aliases=["wikipedia","wikisearch","randomwiki","rw"], description="searches wikipedia")
+    async def wiki(self, ctx: commands.Context):
+        async with self.bot.session.get("https://en.wikipedia.org/api/rest_v1/page/random/summary") as wiki:
+            wiki_json = await wiki.json()
+
+            await ctx.send(wiki_json['content_urls']['desktop']['page'])
 
     # table layout: guild id table name | keys (server config vars)
     @commands.command(aliases=["setreact","changereact"])

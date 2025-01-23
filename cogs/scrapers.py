@@ -155,7 +155,7 @@ class Scrapers(commands.Cog):
                                     with open(f"files/images/{attachment.filename}","wb") as file:
                                         file.write(data.getbuffer())
 
-                            if attachment.filename.lower().endswith(('png','jpg','jpeg','webp')):
+                            if attachment.filename.lower().endswith(('png','jpg','jpeg','webp','bmp')):
                                 # file is an image
                                 img = f"files/images/{attachment.filename}"
                                 if message.content:
@@ -207,7 +207,6 @@ class Scrapers(commands.Cog):
     async def nasa(self, ctx: commands.Context):
         embed = discord.Embed(title="Astronomy Picture of the Day", color=discord.Color.blurple())
 
-        #url = "https://apod.nasa.gov/apod/ap150122.html"
         apod_url = "https://apod.nasa.gov/apod/"
         async with self.bot.session.get(apod_url) as response:
             soup = BeautifulSoup(await response.text(), "html.parser")
