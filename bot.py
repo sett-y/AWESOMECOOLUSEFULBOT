@@ -37,10 +37,10 @@ class AwesomeBot(commands.Bot):
         for filename in os.listdir('./cogs'):
             if filename.endswith('.py'):
                 #cut off .py from filename
-                try:
-                    self.load_extension(f"cogs.{filename[:-3]}")
-                except Exception as e:
-                    print(f"problem loading extension: {e}")
+                #try:
+                self.load_extension(name=f"cogs.{filename[:-3]}")
+                #except Exception as e:
+                #    print(f"problem loading extension: {e}")
         print("extensions loaded")
 
     async def on_ready(self):
@@ -53,12 +53,9 @@ bot = AwesomeBot()
 async def shutdown(ctx: commands.Context):
     print("shutting down")
     await ctx.send("shutting down")
-    try:
-        await bot.session.close()
-        await bot.close()
-        print("shut down complete")
-    except Exception as e:
-        print(f"error while shutting down: {e}")
+    await bot.session.close()
+    await bot.close()
+    print("shut down complete")
 
 @bot.command(description="restarts bot (owner only)")
 @commands.is_owner()

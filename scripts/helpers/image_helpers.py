@@ -15,7 +15,7 @@ async def check_image(ctx: commands.Context, url=None):
         return attachment_file
     else:
         print("no direct attachment or url in message")
-        async for msg in ctx.channel.history(limit=20):
+        async for msg in ctx.channel.history(limit=40):
             # check if attachments exist, then check if attachment is img
             if msg.attachments:
                 if msg.attachments[0].filename.lower().endswith(('png','jpg','jpeg','webp','bmp')):

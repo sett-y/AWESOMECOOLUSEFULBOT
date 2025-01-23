@@ -105,7 +105,7 @@ class AI(commands.Cog):
 
     @commands.command(aliases=["cgh"])
     @commands.is_owner()
-    async def clearGlobalHistory(self, ctx: commands.Context):
+    async def clearglobalhistory(self, ctx: commands.Context):
         await api.clearGlobalHistory()
         await ctx.send("global history cleared")
 
@@ -127,7 +127,7 @@ class AI(commands.Cog):
 
     @commands.command(aliases=["csh"])
     @commands.is_owner()
-    async def clearServerHistory(self, ctx: commands.Context):
+    async def clearserverhistory(self, ctx: commands.Context):
         await api.clearServerHistory(ctx)
         await ctx.send("server history cleared")
 
@@ -136,7 +136,7 @@ class AI(commands.Cog):
         async for msg in ctx.channel.history(limit=int(n)):
             messageWithName = f"{msg.author.name}: {msg.content}"
             messages.append(messageWithName)
-        messages.pop()
+        messages.pop() # removes prompt command message since prompt is already sent
         messages.reverse()
         return messages
 
@@ -170,10 +170,6 @@ class AI(commands.Cog):
             await ctx.send(response)
         else:
             await ctx.send("too dam long idiot")
-
-    @commands.command() # gemini image editing
-    async def image(self, ctx: commands.Context, *, arg):
-        pass
 
     # votes to clear server context history
     @commands.command()
