@@ -4,7 +4,7 @@ import python_weather
 import random
 import scripts.reminder as reminder
 import io
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 from scripts.helpers.image_helpers import check_image
 
 #TODO: profiles
@@ -196,7 +196,6 @@ class Fun(commands.Cog):
 
                 if image_data:
                     im = Image.open(io.BytesIO(image_data)) # container for binary data, treated like file
-                    await ctx.send(f"size: {im.size}\nformat: {im.format}\nmode: {im.mode}")
                 else:
                     await ctx.send("invalid image")
 
@@ -209,57 +208,118 @@ class Fun(commands.Cog):
                 #with io.BytesIO() as binary_image:
 
     @commands.command(name="balls")
-    async def balls(self, ctx: commands.Context, url):
+    async def balls(self, ctx: commands.Context, url: str = None):
         ball = Image.open("files/images/balls.webp")
         buffer = io.BytesIO()
-
         attachment_file = await check_image(ctx, url)
 
-        async with self.bot.session.get(attachment_file) as attach:
-            image_data = await attach.read()
-            print(type(image_data))
-            if image_data:
-                im = Image.open(io.BytesIO(image_data))
+        async with ctx.channel.typing():
+            async with self.bot.session.get(attachment_file) as attach:
+                image_data = await attach.read()
+                if image_data:
+                    im = Image.open(io.BytesIO(image_data))
 
-                #print(flags.width, flags.height)
-                im.paste(ball, (100, 100)) # returns None, check docs from now on
-                im.save(buffer, 'PNG')
-                buffer.seek(0)
-                await ctx.send(file=discord.File(buffer, "balls.png"))
-                buffer.close()
+                    im.paste(ball, (100, 100)) # returns None, check docs from now on
+                    im.save(buffer, 'PNG')
+                    buffer.seek(0)
+                    await ctx.send(file=discord.File(buffer, "balls.png"))
+                    buffer.close()
 
     @commands.command(name="quote", description="generates a real quote by a user")
     async def quoteuser(self, ctx: commands.Context, member: discord.Member = None,
-                        *, message):
+                        *, message: str = None):
         if message is None:
             await ctx.send("include a quote idiot")
             return
         buffer = io.BytesIO()
 
-        async with self.bot.session.get(member.avatar.url) as avatar:
-            if avatar.status != 200:
-                print("failed to fetch avatar")
-            member = member or ctx.author
-            image_data = await avatar.read()
-            avatar_image = Image.open(io.BytesIO(image_data))
-            avatar_image.thumbnail((200,200))
+        async with ctx.channel.typing():
+            async with self.bot.session.get(member.avatar.url) as avatar:
+                if avatar.status != 200:
+                    print("failed to fetch avatar")
+                member = member or ctx.author
+                image_data = await avatar.read()
+                avatar_image = Image.open(io.BytesIO(image_data))
+                avatar_image.thumbnail((150,150))
 
-            quote = Image.new(mode="RGB", size=(400,400))
-            draw = ImageDraw.Draw(quote)
+                quote = Image.new(mode="RGB", size=(400,400))
+                draw = ImageDraw.Draw(quote)
 
-            font = ImageFont.truetype("files/fonts/0xProtoNerdFontMono-Regular.ttf", 30)
+                font = ImageFont.truetype("files/fonts/0xProtoNerdFontMono-Regular.ttf", 25)
 
-            user_quote = f"\"{message}\"\n-{member.name}"
-            draw.text((100,100), user_quote, font=font) # text returns None
+                wrapped_message = ""
+                line_len = 0
+                max_len = 25
+                for word in message.split(' '):
+                    while len(word) > max_len:
+                        wrapped_message += word[:max_len] + '\n'
+                        word = word[max_len:]
+                        line_len = 0
 
-            # paste avatar
-            quote.paste(avatar_image, (quote.width//2, quote.height//2))
+                    if line_len + len(word) > max_len:
+                        wrapped_message += f"\n{word} "
+                        line_len = len(word) + 1
+                    else:
+                        wrapped_message += f"{word} "
+                        line_len += len(word) + 1
 
-            quote.save(buffer, 'PNG')
-            buffer.seek(0)
+                user_quote = f"\"{wrapped_message}\"\n-{member.name}"
+                draw.text((0,0), user_quote, font=font) # text returns None
 
-            await ctx.send(file=discord.File(buffer, "quote.png"))
-            buffer.close()
+                # paste avatar
+                quote.paste(avatar_image, (round(quote.width/3.5), quote.height//2))
+
+                quote.save(buffer, 'PNG')
+                buffer.seek(0)
+
+                await ctx.send(file=discord.File(buffer, "quote.png"))
+                buffer.close()
+
+    @commands.command()
+    async def editprofile(self, ctx: commands.Context):
+        pass
+
+    @commands.command(description="displays user profile")
+    async def profile(self, ctx: commands.Context):
+        pass
+
+    @commands.command(aliases=["mono"], description="changes image to black and white")
+    async def monochrome(self, ctx: commands.Context, url=None):
+        buffer = io.BytesIO()
+        attachment_file = await check_image(ctx, url)
+
+        async with ctx.channel.typing():
+            async with self.bot.session.get(attachment_file) as attach:
+                image_data = await attach.read()
+                im = Image.open(io.BytesIO(image_data))
+                mono = im.convert('L')
+                mono.save(buffer, "PNG")
+                buffer.seek(0)
+                await ctx.send(file=discord.File(buffer, "monochrome.png"))
+                buffer.close()
+
+    @commands.command()
+    async def contrast(self, ctx: commands.Context, url=None):
+        buffer = io.BytesIO()
+        attachment_file = await check_image(ctx, url)
+
+        async with ctx.channel.typing():
+            async with self.bot.session.get(attachment_file) as attach:
+                image_data = await attach.read()
+                im = Image.open(io.BytesIO(image_data))
+                
+                contrast_image = ImageEnhance.Contrast(im)
+                im = contrast_image.enhance(1.9)
+                #contrast_image2 = ImageEnhance.Sharpness()
+
+                bright = im.point(lambda i: i * 5)
+                bright.save(buffer, 'PNG')
+
+                buffer.seek(0)
+                await ctx.send(file=discord.File(buffer, "baked.png"))
+                buffer.close()
+
+# TODO: let users invoke commands on messages by replying to them
 
     """
         idea: userphone-like command that searches for connection to another server,
