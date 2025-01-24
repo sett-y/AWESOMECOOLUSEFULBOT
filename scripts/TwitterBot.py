@@ -41,3 +41,6 @@ async def getLastPost():
     post_url = f"https://bsky.app/profile/{name}/post/{post_uri}"
     
     return post_url
+
+
+#TODO: vote on pinned post and get pinned post
