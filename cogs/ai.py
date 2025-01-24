@@ -63,7 +63,7 @@ class AI(commands.Cog):
                 file.write(response)
             
             await ctx.send(file=discord.File("response.txt"))
-            os.remove(f"{os.getcwd()}\\response.txt")
+            os.remove(f"response.txt")
         else:
             await ctx.send(response)
 
@@ -99,7 +99,7 @@ class AI(commands.Cog):
                 file.write(history)
             
             await ctx.send(file=discord.File("history.txt"))
-            os.remove(f"{os.getcwd}\\history.txt")
+            os.remove(f"history.txt")
         else:
             await ctx.send(history)
 
@@ -121,7 +121,7 @@ class AI(commands.Cog):
                 file.write(history)
 
             await ctx.send(file=discord.File("history.txt"))
-            os.remove(f"{os.getcwd()}\\history.txt")
+            os.remove(f"history.txt")
         else:
             await ctx.send(history)
 
