@@ -5,14 +5,14 @@ import scripts.config
 import os
 import sys
 import aiohttp
-import wavelink
+#import wavelink
 import logging
 import random
+import sqlite3
 #import tracemalloc
 
 #TODO: custom prefixes (per server)
 #TODO: block users
-#TODO: image manipulation cmds
 #lru_cache - saves N recent function calls
 #islice - slices iterable, good for pagination
 #single dispatch - overload function to take multiple types
@@ -32,6 +32,8 @@ class AwesomeBot(commands.Bot):
         self.hawk = "hawk"
         self.session: aiohttp.ClientSession = None # aiohttp session
         self.logger = logging.basicConfig(level=logging.INFO) # logging
+        self.con = None
+        self.cur = None
 
     async def load_extensions(self):
         for filename in os.listdir('./cogs'):
@@ -53,7 +55,9 @@ bot = AwesomeBot()
 async def shutdown(ctx: commands.Context):
     print("shutting down")
     await ctx.send("shutting down")
+    bot.con.close()
     await bot.session.close()
+    await asyncio.sleep(0)
     await bot.close()
     print("shut down complete")
 
@@ -129,11 +133,18 @@ async def on_command_error(ctx: commands.Context, error):
 async def main():
     async with bot:
         await bot.load_extensions()
+        bot.con = sqlite3.connect("files/configs.db")
+        bot.cur = bot.con.cursor()
         bot.session = aiohttp.ClientSession()
+
         if bot.session:
             print("aiohttp session started")
         else:
             print("aiohttp session failed to start")
+        if bot.con and bot.cur:
+            print("sqlite connection started")
+        else:
+            print("sqlite failed to start")
         await bot.start(scripts.config.bot_token)
 
 if __name__ == "__main__":
