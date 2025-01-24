@@ -3,11 +3,9 @@ import sqlite3
 # helper commands for working with the sqlite database
 # this is mainly to reduce codebase size and encourage code reuse
 
-async def return_guild_emoji(guildID, defaultEmoji=None):
+async def return_guild_emoji(guildID, cur, con, defaultEmoji=None):
     table_name = f"guild_{guildID}"
 
-    con = sqlite3.connect("files/configs.db")
-    cur = con.cursor()
     query = f'''
     SELECT emoji FROM {table_name}
     '''
@@ -20,7 +18,7 @@ async def return_guild_emoji(guildID, defaultEmoji=None):
         print("using default emoji")
         return defaultEmoji
 
-async def delete_guild_emoji(guildID):
+async def delete_guild_emoji(guildID, cur, con):
     table_name = f"guild_{guildID}"
 
     guild_emoji = await return_guild_emoji(guildID)

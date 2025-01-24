@@ -45,10 +45,11 @@ class Util(commands.Cog):
     @commands.command(description="sends list of commands w/ aliases")
     async def aliases(self, ctx: commands.Context):
         commandList = []
-        for c in self.bot.commands:
-            commandList.append(f"{c.name} - {c.aliases}\n")
-        cmdList = ''.join(str(c) for c in commandList)
-        await ctx.send(cmdList)
+        async with ctx.channel.typing():
+            for c in self.bot.commands:
+                commandList.append(f"{c.name} - {c.aliases}\n")
+            cmdList = ''.join(str(c) for c in commandList)
+            await ctx.send(cmdList)
 
     @commands.command(aliases=["wikipedia","wikisearch","randomwiki","rw"], description="searches wikipedia")
     async def wiki(self, ctx: commands.Context):
@@ -60,9 +61,9 @@ class Util(commands.Cog):
     # table layout: guild id table name | keys (server config vars)
     @commands.command(aliases=["setreact","changereact"])
     async def switchreact(self, ctx: commands.Context, userEmoji):
-        con = sqlite3.connect("files/configs.db")
+        #con = sqlite3.connect("files/configs.db")
         # cursor to interact w/ database
-        cur = con.cursor()
+        #cur = con.cursor()
 
         table_name = f"guild_{ctx.guild.id}"
 
@@ -72,7 +73,7 @@ class Util(commands.Cog):
         '''
 
         # checks if table exists
-        guildTable = cur.execute(query,(table_name,)).fetchall()
+        guildTable = self.bot.cur.execute(query,(table_name,)).fetchall()
 
         # if table doesnt exist
         if not guildTable:
@@ -80,14 +81,14 @@ class Util(commands.Cog):
             query = f'''
             CREATE TABLE {table_name} (emoji TEXT)
             '''
-            cur.execute(query)
+            self.bot.cur.execute(query)
             # insert into table
             print("inserting into table")
             query = f'''
             INSERT INTO {table_name} (emoji)
             VALUES (?)
             '''
-            cur.execute(query,(userEmoji,))
+            self.bot.cur.execute(query,(userEmoji,))
             await ctx.send(f"{userEmoji}")
         # access existing table
         else:
@@ -97,29 +98,29 @@ class Util(commands.Cog):
             UPDATE {table_name}
             SET emoji = ?
             ''' # no WHERE because table will only have 1 emoji column
-            cur.execute(delquery,(userEmoji,))
+            self.bot.cur.execute(delquery,(userEmoji,))
             await ctx.send(f"{userEmoji}")
             
-        con.commit()
-        con.close()
+        self.bot.con.commit()
+        self.bot.con.close()
 
     @commands.command(aliases=["db"])
     @commands.is_owner()
     async def database(self, ctx: commands.Context):
         embed = discord.Embed(title="database")
-        con = sqlite3.connect("files/configs.db")
-        cur = con.cursor()
+        #con = sqlite3.connect("files/configs.db")
+        #cur = con.cursor()
         query = f'''
         SELECT name FROM sqlite_master WHERE type='table'
         '''
-        dbStr = cur.execute(query).fetchall()
+        dbStr = self.bot.cur.execute(query).fetchall()
         #await ctx.send(dbStr)
 
         dbFull = []
         # formatting like this auto unpacks the tuple
         for (table_name,) in dbStr:
             dbFull.append(table_name)
-            dbFull.append(cur.execute(f"SELECT * FROM {table_name}").fetchall())
+            dbFull.append(self.bot.cur.execute(f"SELECT * FROM {table_name}").fetchall())
 
         result = '\n'.join(str(x) for x in dbFull)
         embed.add_field(name="",value=result)
@@ -127,7 +128,7 @@ class Util(commands.Cog):
 
     @commands.command(description="checks the emoji used for guild votes and bluesky posts")
     async def check_guild_emoji(self, ctx: commands.Context):
-        await ctx.send(await return_guild_emoji(ctx))
+        await ctx.send(await return_guild_emoji(self.bot.cur, self.bot.con, ctx))
 
 
 def setup(bot):

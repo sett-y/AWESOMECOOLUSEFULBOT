@@ -49,7 +49,7 @@ class Fun(commands.Cog):
     @commands.command(description="sends a random cool website", aliases=["site"])
     async def website(self, ctx: commands.Context):
         websites = []
-        with open("websites.txt", 'r') as file:
+        with open("files/websites.txt", 'r') as file:
             for website in file:
                 websites.append(website)
             w = websites[random.randint(0,len(websites)-1)].strip('\n')
@@ -116,16 +116,6 @@ class Fun(commands.Cog):
     # ALTER TABLE guild_
     # ADD fart TEXT
 
-    @commands.command(description="adds impact font to an image")
-    async def impact(self, ctx: commands.Context, message: discord.Message):
-        dscImg = message.attachments[0].url
-        dscMsg = message.content
-        await ctx.send(f"{dscMsg} {dscImg}")
-        # prob need to pass as link or byte stream
-        #image = Image.open(dscImg)
-        #print(f"{image.format} {image.size}")
-
-        #ImageFont
 
     @commands.command(aliases=["voteavatar","votepfp"])
     async def vote(self, ctx: commands.Context):
@@ -184,6 +174,14 @@ class Fun(commands.Cog):
                                         headers={"Accept": "text/plain"}) as fact:
             data = await fact.text()
             await ctx.send(data)
+
+    @commands.command(aliases=["coin"])
+    async def coinflip(self, ctx: commands.Context):
+        ra = random.random()
+        if ra > 0.5:
+            await ctx.send("heads")
+        else:
+            await ctx.send("tails")
 
     @commands.command(aliases=["flipimage"])
     async def flip(self, ctx: commands.Context, url: str = None):
@@ -262,6 +260,7 @@ class Fun(commands.Cog):
                     else:
                         wrapped_message += f"{word} "
                         line_len += len(word) + 1
+                    #del wrapped_message[-1]
 
                 user_quote = f"\"{wrapped_message}\"\n-{member.name}"
                 draw.text((0,0), user_quote, font=font) # text returns None
@@ -318,6 +317,12 @@ class Fun(commands.Cog):
                 buffer.seek(0)
                 await ctx.send(file=discord.File(buffer, "baked.png"))
                 buffer.close()
+
+    @commands.command(description="adds impact font to an image")
+    async def impact(self, ctx: commands.Context, url=None):
+        buffer = io.BytesIO()
+        attachment_file = await check_image(ctx, url)
+
 
 # TODO: let users invoke commands on messages by replying to them
 
