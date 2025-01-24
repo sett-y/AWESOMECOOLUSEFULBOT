@@ -239,12 +239,7 @@ class Scrapers(commands.Cog):
                 await ctx.send(apod_url + image['src'])
                 print("image sent")
             else:
-                print("source is of a different media type")
-
-    @commands.command(aliases=["nasaarchive","apoda","aa"])
-    async def apodarchive(self, ctx: commands.Context):
-        url = "https://apod.nasa.gov/apod/archivepix.html"
-        
+                print("source is of a different media type")   
             
 
 def setup(bot):
