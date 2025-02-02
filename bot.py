@@ -5,50 +5,52 @@ import scripts.config
 import os
 import sys
 import aiohttp
-#import wavelink
 import logging
 import random
 import sqlite3
-#import tracemalloc
 
-#TODO: custom prefixes (per server)
-#TODO: block users
-#lru_cache - saves N recent function calls
-#islice - slices iterable, good for pagination
-#single dispatch - overload function to take multiple types
+# Initialize the bot
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix=[">", "bc"], intents=intents)
+bot.logger = logging.basicConfig(level=logging.INFO)
 
-# important functions: ctx.channel | ctx.channel.history
-# history contains messages
-# to get message content from ctx.channel.history, use .content
+# Global variables
+bot.hawk = "hawk"
+bot.session = None
+bot.con = None
+bot.cur = None
 
-class AwesomeBot(commands.Bot):
-    hawk: str
-    session: aiohttp.ClientSession
+async def load_extensions():
+    for filename in os.listdir('./cogs'):
+        if filename.endswith('.py'):
+            bot.load_extension(name=f"cogs.{filename[:-3]}")
+    print("extensions loaded")
 
-    def __init__(self):
-        intents = discord.Intents.default()
-        intents.message_content = True
-        super().__init__(command_prefix=[">","bc"], intents=intents)
-        self.hawk = "hawk"
-        self.session: aiohttp.ClientSession = None # aiohttp session
-        self.logger = logging.basicConfig(level=logging.INFO) # logging
-        self.con = None
-        self.cur = None
+@bot.event
+async def on_ready():
+    print(f"logged in as {bot.user}")
 
-    async def load_extensions(self):
-        for filename in os.listdir('./cogs'):
-            if filename.endswith('.py'):
-                #cut off .py from filename
-                #try:
-                self.load_extension(name=f"cogs.{filename[:-3]}")
-                #except Exception as e:
-                #    print(f"problem loading extension: {e}")
-        print("extensions loaded")
+@bot.event
+async def on_message(message: discord.Message):
+    #print(message.content)
+    
+    reactChance = random.random()
+    serverEmojis = message.guild.emojis
+    if reactChance < 0.05:
+        randomEmoji = random.choice(serverEmojis)
+        await message.add_reaction(randomEmoji)
+    elif reactChance < 0.005:
+        randomEmoji = "🐲"
+        await message.add_reaction(randomEmoji)
+    
+    if message.content.startswith("bruh"):
+        await message.channel.send("shut up")
 
-    async def on_ready(self):
-        print(f"logged in as {self.user}")
+    if bot.hawk in message.content.lower():
+        await message.channel.send("tuah")
 
-bot = AwesomeBot()
+    await bot.process_commands(message)
 
 @bot.command(description="shuts down bot (owner only)")
 @commands.is_owner()
@@ -65,7 +67,6 @@ async def shutdown(ctx: commands.Context):
 @commands.is_owner()
 async def restart(ctx: commands.Context):
     print("restarting")
-    #await bot.session.close()
     embed = discord.Embed(title=":white_check_mark: restarting :white_check_mark:")
     await ctx.send(embed=embed)
     os.execv(sys.executable, ['python'] + sys.argv)
@@ -88,36 +89,13 @@ async def commandlist(ctx: commands.Context):
     text += "```"
     await ctx.send(text)
 
-#@bot.check_once
-#async def blacklist(ctx: commands.Context):
-    # check database for user id
-
-async def on_message(message: discord.Message):
-    if message.author == bot.user:
-        return
-    
-    reactChance = random.random()
-    serverEmojis = message.guild.emojis
-    if reactChance < 0.05:
-        randomEmoji = random.choice(serverEmojis)
-        await message.add_reaction(randomEmoji)
-    elif reactChance < 0.005:
-        randomEmoji = "🐲"
-        await message.add_reaction(randomEmoji)
-    
-    if message.content.startswith("bruh"):
-        await message.channel.send("shut up")
-
-    if bot.hawk in message.content.lower():
-        await message.channel.send("tuah")
-
-    await bot.process_commands(message)
-
+@bot.event
 async def on_guild_emojis_update(guild: discord.Guild, before, after):
     newEmoji = after[-1]
     channel = guild.system_channel
     await channel.send(newEmoji)
 
+@bot.event
 async def on_member_join(member: discord.Member):
     await member.guild.system_channel.send(f"hi {member}")
 
@@ -126,13 +104,10 @@ async def on_command_error(ctx: commands.Context, error):
     if ctx.cog:
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.send("command on cooldown")
-    #await ctx.send(error)
-    #if isinstance(error, commands.CommandOnCooldown):
-    #    await ctx.send("command on cooldown")
 
 async def main():
     async with bot:
-        await bot.load_extensions()
+        await load_extensions()
         bot.con = sqlite3.connect("files/configs.db")
         bot.cur = bot.con.cursor()
         bot.session = aiohttp.ClientSession()

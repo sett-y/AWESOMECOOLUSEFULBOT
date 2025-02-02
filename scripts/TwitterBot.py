@@ -1,7 +1,8 @@
-from atproto import AsyncClient, client_utils
+from atproto import AsyncClient#, client_utils
 import os
 from scripts.config import bsky_username, bsky_password
 import re
+from PIL import Image
 
 client = AsyncClient()
 

@@ -1,5 +1,5 @@
 import spotipy
-from urllib.parse import quote
+import traceback
 from spotipy.oauth2 import SpotifyClientCredentials
 from scripts.config import spotify_client_id, spotify_client_secret
 
@@ -12,11 +12,17 @@ async def SpotifySong(url):
     try:
         userPlaylist = sp.playlist_items(playlist_id=url, additional_types="track")
         return userPlaylist, "playlist"
-    except:
+    except Exception as e:
         print("type is not playlist")
+        if e:
+            print("exception found:")
+            print(f"{e}\n{traceback.print_exc}")
     
     try:
         userAlbum = sp.album_tracks(album_id=url)
         return userAlbum, "album"
-    except:
+    except Exception as e:
         print("type is not album or playlist")
+        if e:
+            print("exception found:")
+            print(f"{e}\n{traceback.print_exc()}")
