@@ -1,5 +1,5 @@
 from pytubefix import YouTube
-from discord.ext import commands
+from discord.ext import commands, bridge
 import discord
 import os
 import scripts.ytmp3 as ytmp3
