@@ -1,10 +1,10 @@
-from discord.ext import commands, tasks
+from discord.ext import commands, bridge, tasks
 import discord
 import PIL
 import random
 import datetime
 import io
-import sqlite3
+import traceback
 from bs4 import BeautifulSoup
 import scripts.catFacts as catFacts
 import scripts.scraper as scraper
@@ -22,15 +22,21 @@ class Scrapers(commands.Cog):
         self.reactionsNeeded = 1
         # add dict with guild ids for keys that tracks the reaction threshhold
 
-    @commands.command(aliases=["catfact","cat"], description="displays a random cat fact")
-    async def catFact(self, ctx: commands.Context):
-        #TODO: delete this after get_fact is done
-        await ctx.send("loading cat fact...")
+    @commands.command(aliases=["felinefact","cat"], description="displays a random cat fact")
+    async def catfact(self, ctx: commands.Context):
+        if isinstance(ctx, bridge.BridgeApplicationContext):
+            await ctx.defer() # must be followed up with followup.send
         try:
+            if isinstance(ctx, bridge.BridgeExtContext):
+                await ctx.trigger_typing()
             catFact = await catFacts.get_fact()
-            await ctx.send(catFact)
+            if isinstance(ctx, bridge.BridgeApplicationContext):
+                await ctx.followup.send(catFact)
+            else:
+                await ctx.send(catFact)
         except:
             print("error while scraping page")
+            await ctx.followup.send("error while scraping page")
 
     @commands.command(description="displays info about dota match")
     async def display_match(self, ctx: commands.Context): # add url back to params
@@ -107,18 +113,19 @@ class Scrapers(commands.Cog):
     #TODO: search feature
     @commands.command(aliases=["sotd","spotifysong"], description="sends a random song from a spotify album/playlist")
     async def spotify(self, ctx: commands.Context, url):
+        # shouldnt need to defer since this is fast
         song, apiResult = await SpotifySong(url)
         # logic to choose between album and playlist
         if apiResult == "playlist":
             songItems = song['items']
             ranSongChoice = random.choice(songItems)
             choice = ranSongChoice['track']['external_urls']['spotify']
-            await ctx.send(choice)
+            await ctx.respond(choice)
         elif apiResult == "album":
             songItems = song['items']
             ranSongChoice = random.choice(songItems)
             choice = ranSongChoice['external_urls']['spotify']
-            await ctx.send(choice)
+            await ctx.respond(choice)
         else:
             print("input is neither playlist nor album")
 
@@ -136,7 +143,7 @@ class Scrapers(commands.Cog):
         message = await channel.fetch_message(payload.message_id)
         reactions = message.reactions
 
-        react_emoji = await return_guild_emoji(payload.guild_id, "🚎")
+        react_emoji = await return_guild_emoji(payload.guild_id, self.bot.cur, "🚎")
 
         #if message.author.id == self.bot.user.id:
         #    return
@@ -188,10 +195,11 @@ class Scrapers(commands.Cog):
                             
                             #if attachment"""
 
-    @tasks.loop(time=datetime.time(hour=16, minute=20))
-    async def dailySong(self, ctx: commands.Context):
+    @tasks.loop(time=datetime.time(hour=22, minute=0))
+    async def dailysong(self, ctx: commands.Context):
         channel = self.bot.get_channel(684575538957910055)
-        song = await SpotifySong("https://open.spotify.com/playlist/04mZkGQA7QgVt3SPHuob76?si=AYE-9WXlSUOaixoMER3SZw")
+        # unpacking because SpotifySong returns a tuple
+        song, dummyVal = await SpotifySong("https://open.spotify.com/playlist/04mZkGQA7QgVt3SPHuob76")
         songItems = song['items']
 
         ranSongChoice = random.choice(songItems)
@@ -199,9 +207,19 @@ class Scrapers(commands.Cog):
 
         await channel.send(choice)
 
-    @dailySong.before_loop
-    async def before_dailySong(self):
+    @dailysong.before_loop
+    async def before_dailysong(self):
         await self.bot.wait_until_ready()
+
+    @commands.command()
+    async def testdaily(self, ctx: commands.Context):
+        try:
+            await self.dailysong(self)
+        except Exception as e:
+            #tb = traceback.extract_tb(e.__traceback__)
+            #lineNum = tb[-1].lineno
+            print(f"exception {e} happened at line {traceback.print_exc}")
+        print("daily task tested")
 
     @commands.command(aliases=["apod","astronomy"], description="Astronomy Picture of the Day")
     async def nasa(self, ctx: commands.Context):
@@ -240,6 +258,7 @@ class Scrapers(commands.Cog):
                 print("image sent")
             else:
                 print("source is of a different media type")   
+            #TODO: normal reply w/ slash command
             
 
 def setup(bot):
