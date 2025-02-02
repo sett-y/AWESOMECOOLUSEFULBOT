@@ -1,4 +1,4 @@
-from discord.ext import commands
+from discord.ext import commands, bridge
 import discord
 import python_weather
 import random
@@ -20,15 +20,13 @@ class Fun(commands.Cog):
 
     #@commands.cooldown(1, 10, commands.BucketType.user)
     @commands.command(description="repeats user's message", aliases=["print"])
-    async def echo(self, ctx: commands.Context, *, arg):
-        # needs perms
-        await ctx.message.delete()
-        await ctx.send(arg)
+    async def echo(self, ctx: commands.Context, *, message):
+        botmessage = await ctx.send(message)
+        await botmessage.delete
 
     @commands.command(description="displays weather stats using a wttr.in wrapper")
     async def weather(self, ctx: commands.Context, *, arg):
         tempEmoji = ""
-        humEmoji = ""
         async with python_weather.Client(unit=python_weather.IMPERIAL) as client:
             weather = await client.get(arg)
             if weather.temperature > 90: tempEmoji+="🔥"
@@ -49,11 +47,14 @@ class Fun(commands.Cog):
     @commands.command(description="sends a random cool website", aliases=["site"])
     async def website(self, ctx: commands.Context):
         websites = []
-        with open("files/websites.txt", 'r') as file:
+        with open("websites.txt", 'r') as file:
             for website in file:
                 websites.append(website)
             w = websites[random.randint(0,len(websites)-1)].strip('\n')
-            await ctx.send(w)
+            if isinstance(ctx, bridge.BridgeApplicationContext):
+                await ctx.send(w)
+            else:
+                await ctx.send(w)
 
     @commands.command(aliases=["remind"], description="send reminder msg, then enter numbers in subsequent msg:<hours> <minutes>")
     async def reminder(self, ctx: commands.Context, *, arg):
@@ -83,8 +84,8 @@ class Fun(commands.Cog):
         print("sleep done")
         await ctx.send(f"{ctx.author.mention} {arg} {message[0]} {message[1]}")
 
-    @commands.command(aliases=["reverse","reversetext","reversetxt"], description="reverses text")
-    async def reverseText(self, ctx: commands.Context, *, msg):
+    @commands.command(aliases=["reverse","reversetxt"], description="reverses text")
+    async def reversetext(self, ctx: commands.Context, *, msg):
         msg = msg[::-1]
         await ctx.send(msg)
         #TODO: reverse text from replies
@@ -136,8 +137,6 @@ class Fun(commands.Cog):
     async def on_reaction_add(self, reaction: discord.Reaction, user: discord.Member):
         messageID = reaction.message.id
         content = reaction.message.content
-
-        #TODO: delete files after saving
 
         guild_emoji = "👆"
 
@@ -223,65 +222,6 @@ class Fun(commands.Cog):
                     await ctx.send(file=discord.File(buffer, "balls.png"))
                     buffer.close()
 
-    @commands.command(name="quote", description="generates a real quote by a user")
-    async def quoteuser(self, ctx: commands.Context, member: discord.Member = None,
-                        *, message: str = None):
-        if message is None:
-            await ctx.send("include a quote idiot")
-            return
-        buffer = io.BytesIO()
-
-        async with ctx.channel.typing():
-            async with self.bot.session.get(member.avatar.url) as avatar:
-                if avatar.status != 200:
-                    print("failed to fetch avatar")
-                member = member or ctx.author
-                image_data = await avatar.read()
-                avatar_image = Image.open(io.BytesIO(image_data))
-                avatar_image.thumbnail((150,150))
-
-                quote = Image.new(mode="RGB", size=(400,400))
-                draw = ImageDraw.Draw(quote)
-
-                font = ImageFont.truetype("files/fonts/0xProtoNerdFontMono-Regular.ttf", 25)
-
-                wrapped_message = ""
-                line_len = 0
-                max_len = 25
-                for word in message.split(' '):
-                    while len(word) > max_len:
-                        wrapped_message += word[:max_len] + '\n'
-                        word = word[max_len:]
-                        line_len = 0
-
-                    if line_len + len(word) > max_len:
-                        wrapped_message += f"\n{word} "
-                        line_len = len(word) + 1
-                    else:
-                        wrapped_message += f"{word} "
-                        line_len += len(word) + 1
-                    #del wrapped_message[-1]
-
-                user_quote = f"\"{wrapped_message}\"\n-{member.name}"
-                draw.text((0,0), user_quote, font=font) # text returns None
-
-                # paste avatar
-                quote.paste(avatar_image, (round(quote.width/3.5), quote.height//2))
-
-                quote.save(buffer, 'PNG')
-                buffer.seek(0)
-
-                await ctx.send(file=discord.File(buffer, "quote.png"))
-                buffer.close()
-
-    @commands.command()
-    async def editprofile(self, ctx: commands.Context):
-        pass
-
-    @commands.command(description="displays user profile")
-    async def profile(self, ctx: commands.Context):
-        pass
-
     @commands.command(aliases=["mono"], description="changes image to black and white")
     async def monochrome(self, ctx: commands.Context, url=None):
         buffer = io.BytesIO()
@@ -318,10 +258,121 @@ class Fun(commands.Cog):
                 await ctx.send(file=discord.File(buffer, "baked.png"))
                 buffer.close()
 
-    @commands.command(description="adds impact font to an image")
-    async def impact(self, ctx: commands.Context, url=None):
+    @commands.command(description="adds impact font to an image (UNFINISHED)")
+    async def impact(self, ctx: commands.Context, url=None, message=None):
         buffer = io.BytesIO()
         attachment_file = await check_image(ctx, url)
+        font = ImageFont.truetype("files/impact.ttf")
+
+        async with ctx.channel.typing():
+            async with self.bot.session.get(attachment_file) as attach:
+                image_data = await attach.read()
+                base_image = Image.open(io.BytesIO(image_data))
+                draw = ImageDraw.Draw(base_image)
+                draw.text((base_image.width/2.5, 20), message, font=font)
+
+                base_image.save(buffer, 'PNG')
+                buffer.seek(0)
+                await ctx.send(file=discord.File(buffer, "impact.png"))
+                buffer.close()
+
+    @commands.command(name="quote", description="generates a real quote by a user")
+    async def quoteuser(self, ctx: commands.Context, member: discord.Member = None,
+                        *, message: str = None):
+        if message is None:
+            await ctx.send("include a quote idiot")
+            return
+        buffer = io.BytesIO()
+
+        async with ctx.channel.typing():
+            async with self.bot.session.get(member.avatar.url) as avatar:
+                if avatar.status != 200:
+                    print("failed to fetch avatar")
+                    return
+                member = member or ctx.author
+                image_data = await avatar.read()
+                avatar_image = Image.open(io.BytesIO(image_data))
+                avatar_image.thumbnail((150,150))
+
+                quote = Image.new(mode="RGB", size=(400,400))
+                draw = ImageDraw.Draw(quote)
+
+                font = ImageFont.truetype("files/fonts/0xProtoNerdFontMono-Regular.ttf", 25)
+
+                wrapped_message = ""
+                line_len = 0
+                max_len = 25
+                for word in message.split(' '):
+                    while len(word) > max_len:
+                        wrapped_message += word[:max_len] + '\n'
+                        word = word[max_len:]
+                        line_len = 0
+
+                    if line_len + len(word) >= max_len:
+                        wrapped_message += f"\n{word} "
+                        line_len = len(word) + 1
+                    else:
+                        wrapped_message += f"{word} "
+                        line_len += len(word) + 1
+                wrapped_message = wrapped_message[:-1]
+
+                user_quote = f"\"{wrapped_message}\"\n-{member.name}"
+                draw.text((0,0), user_quote, font=font) # text returns None
+
+                # paste avatar
+                quote.paste(avatar_image, (round(quote.width/3.5), quote.height//2))
+
+                quote.save(buffer, 'PNG')
+                buffer.seek(0)
+
+                await ctx.send(file=discord.File(buffer, "quote.png"))
+                buffer.close()
+                
+    @commands.command()
+    async def award(self, ctx: commands.Context, member: discord.Member = None, *, message=None):
+        buffer = io.BytesIO()
+        font = ImageFont.truetype("files/impact.ttf", 20)
+
+        async with ctx.channel.typing():
+            async with self.bot.session.get(member.avatar.url) as avatar:
+                if avatar.status != 200:
+                    print("failed to fetch avatar")
+                    return
+                image_data = await avatar.read()
+                award_image = Image.open("files/images/award.png")
+                # add text to award
+                award_draw = ImageDraw.Draw(award_image)
+
+                wrapped_message = ""
+                line_len = 0
+                max_len = 13
+
+                for word in message.split(' '):
+                    while len(word) > max_len:
+                        wrapped_message += word[:max_len] + '\n'
+                        word = word[max_len:]
+                        line_len = 0
+                    
+                    if line_len + len(word) >= max_len:
+                        wrapped_message += f"\n{word} "
+                        line_len = len(word) + 1
+                    else:
+                        wrapped_message += f"{word} "
+                        line_len += len(word) + 1
+                #wrapped_message = wrapped_message[:-1]
+
+                award_draw.text((award_image.width/5,award_image.height/5), 
+                                wrapped_message, fill=(0,0,0,255), font=font)
+
+                avatar_image = Image.open(io.BytesIO(image_data))
+                avatar_image.seek(0)
+                resize_avatar = avatar_image.resize((600,600))
+                resize_avatar.paste(award_image, (400, 400), award_image)
+                resize_avatar.save(buffer, 'PNG')
+                
+                buffer.seek(0)
+                await ctx.send(file=discord.File(buffer, filename="avatar_award.png"))
+                buffer.close()
 
 
 # TODO: let users invoke commands on messages by replying to them
