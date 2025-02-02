@@ -10,15 +10,17 @@ from discord.ext import commands
 contextList = []
 contextDict = {} # dict that holds all histories
 promptNum = 40
-initialExplanation = "You are the discord bot \"AWESOMECOOLUSEFULBOT\". Below is the \
-history of the recent user prompts along with your responses. While understanding \
+initialExplanation = "You are the discord bot \"AWESOMECOOLUSEFULBOT\". \
+Below is the history of the recent user prompts along with your responses. While understanding \
 the context of the previous text, analyze and respond to \
-the user's latest prompt. Keep your response under 2000 characters because of discord's \
-limitations (THIS IS IMPORTANT). Any message prefixed with a username and : are from users. \
+the user's latest prompt. Any message prefixed with a username and : are from users. \
 Your responses have no prefix and will be automatically formatted in the history. \
-Keep track of which user sent which message. Respond to the user, do not repeat any \
-of this given prompt aside from what the user said most recently. Do not prepend 'bot:' to \
-your messages unless explicitly asked to.\n"
+Keep track of which user sent which message. Keep your messages under 2000 characters\
+unless the user states otherwise. Respond to the user, do not repeat any \
+of this given prompt aside from what the user said most recently. Do not repeat the user's response \
+unless it is relevant to your response. Do not prepend 'bot:' to \
+your messages unless explicitly asked to. Even if the user's response is nonsensical, try to give a \
+proper reply.\n"
 
 # prompt | response
 async def addContextHistory(userResponse: str, botResponse: str, ctx: commands.Context):
@@ -45,6 +47,7 @@ async def addServerContextHistory(userResponse: str, botResponse: str, ctx: comm
     if len(contextDict) > 0:
         if guildID not in contextDict:
             contextDict[guildID] = []
+            print("list created for server")
         else:
             print("dictionary contains this key, continuing")
     else:
@@ -70,17 +73,20 @@ async def serverPrompt(ctx: commands.Context, prompt) -> str:
     if guildID not in contextDict:
         contextDict[guildID] = []
 
+    userPrompt = f"{ctx.author.name}: {prompt}"
+
     if len(contextDict[guildID]) > 0:
         fullContext = '\n'.join(str(x) for x in contextDict[guildID])
-        fullContext = initialExplanation + fullContext
-        response = await model.generate_content_async(fullContext + prompt)
+        fullContext = initialExplanation + fullContext + '\n' + userPrompt
     else:
-        response = await model.generate_content_async(initialExplanation + f"{ctx.author.name}: " + prompt)
+        fullContext = initialExplanation + userPrompt
 
+    response = await model.generate_content_async(fullContext)
     await addServerContextHistory(prompt, response.text, ctx)
 
     return response.text
 
+# fix names
 async def genericPrompt(ctx: commands.Context, prompt) -> str:
     model_config = genai.GenerationConfig(temperature=1.8)
     
@@ -88,13 +94,15 @@ async def genericPrompt(ctx: commands.Context, prompt) -> str:
     model = genai.GenerativeModel("gemini-2.0-flash-exp", generation_config=model_config)
     print("generating text... (gemini)")
 
+    userPrompt = f"{ctx.author.name}: {prompt}"
+
     if len(contextList) > 0:
         fullContext = '\n'.join(str(x) for x in contextList)
-        fullContext = initialExplanation + fullContext
-        response = await model.generate_content_async(fullContext + prompt)
+        fullContext = initialExplanation + fullContext + '\n' + userPrompt
     else:
-        response = await model.generate_content_async(initialExplanation + f"{ctx.author.name}: " + prompt)
-    
+        fullContext = initialExplanation + userPrompt
+
+    response = await model.generate_content_async(fullContext)
     await addContextHistory(prompt, response.text, ctx)
 
     return response.text
@@ -186,9 +194,6 @@ async def serverHistory(ctx):
 async def clearServerHistory(ctx):
     guildID = ctx.guild.id
     del contextDict[guildID]
-
-async def imageEdit(prompt): # gemini image edit
-    pass
 
 async def summarize(history):
     #model_config = genai.GenerationConfig()
