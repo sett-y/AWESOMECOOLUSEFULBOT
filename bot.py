@@ -8,6 +8,7 @@ import aiohttp
 import logging
 import random
 import sqlite3
+from scripts.helpers.db_helpers import return_guild_emoji
 
 # Initialize the bot
 intents = discord.Intents.default()
@@ -20,6 +21,7 @@ bot.hawk = "hawk"
 bot.session = None
 bot.con = None
 bot.cur = None
+bot.defaultEmoji = "🚎"
 
 async def load_extensions():
     for filename in os.listdir('./cogs'):
@@ -33,22 +35,40 @@ async def on_ready():
 
 @bot.event
 async def on_message(message: discord.Message):
-    #print(message.content)
-    
+    # dont include bot's messages?
+
     reactChance = random.random()
     serverEmojis = message.guild.emojis
-    if reactChance < 0.05:
+    if reactChance < 0.04 and reactChance > 0.0004:
+        # check for guild emoji
+        guildBskyEmoji = await return_guild_emoji(message.guild.id, bot.cur, bot.defaultEmoji)
         randomEmoji = random.choice(serverEmojis)
+        if str(guildBskyEmoji) == str(randomEmoji):
+            return
         await message.add_reaction(randomEmoji)
-    elif reactChance < 0.005:
-        randomEmoji = "🐲"
-        await message.add_reaction(randomEmoji)
+    elif reactChance <= 0.0004:
+        dragonEmoji = "🐲"
+        await message.add_reaction(dragonEmoji)
+        await message.channel.send("DRAGON ALERT!!!!!", file=discord.File("files/images/dragonaward.png","dragon_award.png"))
     
+    # user tracking
+    if message.author.id == 155120411070300160: # zz
+        if message.content:
+            #TODO: check for attachments and send those? maybe not worth the effort
+            logChannel = bot.get_channel(1336213895953518614)
+            embed = discord.Embed(title="")
+            embed.add_field(name="", value=message.jump_url, inline=False)
+            embed.add_field(name="", value=message.content)
+            await logChannel.send(embed=embed)
+
     if message.content.startswith("bruh"):
         await message.channel.send("shut up")
 
     if bot.hawk in message.content.lower():
         await message.channel.send("tuah")
+
+    if "brian look out" in message.content.lower():
+        await message.channel.send("https://tenor.com/view/brian-family-guy-family-guy-sad-moment-brian-death-death-gif-19315370")
 
     await bot.process_commands(message)
 
