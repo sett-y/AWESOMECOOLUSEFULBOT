@@ -2,6 +2,7 @@ from discord.ext import commands, bridge
 import discord
 from scripts.googlescrape import get_search
 from scripts.helpers.db_helpers import return_guild_emoji
+import random
 
 class Util(commands.Cog):
     def __init__(self, bot):
@@ -144,7 +145,19 @@ class Util(commands.Cog):
 
     @commands.command(description="checks the emoji used for guild votes and bluesky posts")
     async def check_guild_emoji(self, ctx: commands.Context):
-        await ctx.send(await return_guild_emoji(ctx.guild.id, self.bot.cur, "🚎"))
+        await ctx.send(await return_guild_emoji(ctx.guild.id, self.bot.cur, self.bot.defaultEmoji))
+
+    @commands.command()
+    @commands.is_owner()
+    async def test_react(self, ctx: commands.Context):
+        serverEmojis = ctx.message.guild.emojis
+        guildBskyEmoji = await return_guild_emoji(ctx.guild.id, self.bot.cur, self.bot.defaultEmoji)
+        randomEmoji = random.choice(serverEmojis)
+        await ctx.send(f"{guildBskyEmoji}, {randomEmoji}")
+        if str(randomEmoji) == str(guildBskyEmoji):
+            await ctx.send("hawk")
+        else:
+            await ctx.send("tuah")
 
 
 def setup(bot):
