@@ -1,6 +1,5 @@
-from discord.ext import commands, bridge
+from discord.ext import commands
 import discord
-import python_weather
 import random
 import scripts.reminder as reminder
 import io
@@ -13,6 +12,18 @@ from scripts.helpers.image_helpers import check_image
 #    width: int = commands.flag(default=150)
 #    height: int = commands.flag(default=150)
 
+class ImageFlags(commands.FlagConverter):
+    url: str = commands.flag(default=None, description="url to image")
+    top: str = commands.flag(description="text for image")
+    bottom: str = commands.flag(default=None, description="bottom text")
+    #fontsize: int
+
+class BallFlags(commands.FlagConverter):
+    url: str = commands.flag(default=None, description="url of base image")
+    x: int = commands.flag(default=None, description="x coord of balls")
+    y: int = commands.flag(default=None, description="y coord of balls")
+    size: int = commands.flag(default=None, description="size of image")
+
 class Fun(commands.Cog):
     def __init__(self, bot):
         self.bot: discord.Bot = bot
@@ -24,17 +35,17 @@ class Fun(commands.Cog):
         botmessage = await ctx.send(message)
         await botmessage.delete
 
-    @commands.command(description="displays weather stats using a wttr.in wrapper")
-    async def weather(self, ctx: commands.Context, *, arg):
-        tempEmoji = ""
-        async with python_weather.Client(unit=python_weather.IMPERIAL) as client:
-            weather = await client.get(arg)
-            if weather.temperature > 90: tempEmoji+="🔥"
-            elif weather.temperature > 68: tempEmoji+="🌞"
-            elif weather.temperature > 55: tempEmoji+="⛅"
-            else: tempEmoji+="🧊"
-            await ctx.send(f"```City: {weather.location}\nCountry: {weather.country}\nTemperature: {tempEmoji}{weather.temperature}\
-            \nHumidity: {weather.humidity}\nPrecipitation: {weather.precipitation}\nWind Speed: {weather.wind_speed}\n{weather.datetime}```")
+    #@commands.command(description="displays weather stats using a wttr.in wrapper")
+    #async def weather(self, ctx: commands.Context, *, arg):
+    #    tempEmoji = ""
+    #    async with python_weather.Client(unit=python_weather.IMPERIAL) as client:
+    #        weather = await client.get(arg)
+    #        if weather.temperature > 90: tempEmoji+="🔥"
+    #        elif weather.temperature > 68: tempEmoji+="🌞"
+    #        elif weather.temperature > 55: tempEmoji+="⛅"
+    #        else: tempEmoji+="🧊"
+    #        await ctx.send(f"```City: {weather.location}\nCountry: {weather.country}\nTemperature: {tempEmoji}{weather.temperature}\
+    #        \nHumidity: {weather.humidity}\nPrecipitation: {weather.precipitation}\nWind Speed: {weather.wind_speed}\n{weather.datetime}```")
 
     @commands.command(description="troll face")
     async def troll(self, ctx: commands.Context):
@@ -51,10 +62,7 @@ class Fun(commands.Cog):
             for website in file:
                 websites.append(website)
             w = websites[random.randint(0,len(websites)-1)].strip('\n')
-            if isinstance(ctx, bridge.BridgeApplicationContext):
-                await ctx.send(w)
-            else:
-                await ctx.send(w)
+            await ctx.send(w)
 
     @commands.command(aliases=["remind"], description="send reminder msg, then enter numbers in subsequent msg:<hours> <minutes>")
     async def reminder(self, ctx: commands.Context, *, arg):
@@ -117,7 +125,6 @@ class Fun(commands.Cog):
     # ALTER TABLE guild_
     # ADD fart TEXT
 
-
     @commands.command(aliases=["voteavatar","votepfp"])
     async def vote(self, ctx: commands.Context):
         guild_emoji = "👆"
@@ -142,7 +149,7 @@ class Fun(commands.Cog):
 
         # checks if reacted message id has been recorded with vote command
         if messageID in self.avatarVote and reaction.emoji == guild_emoji:
-            if reaction.count >= 2:
+            if reaction.count == 5:
                 if reaction.message.attachments:
                     async with self.bot.session.get(reaction.message.attachments[0].url) as avatar:
                         if avatar.status == 200:
@@ -204,19 +211,33 @@ class Fun(commands.Cog):
                 buffer.close()
                 #with io.BytesIO() as binary_image:
 
-    @commands.command(name="balls")
-    async def balls(self, ctx: commands.Context, url: str = None):
+    @commands.command(name="balls", description="usage: >balls x:<int> y:<int> url:<text> (arguments are optional)")
+    async def balls(self, ctx: commands.Context, *, flags: BallFlags):
         ball = Image.open("files/images/balls.webp")
         buffer = io.BytesIO()
-        attachment_file = await check_image(ctx, url)
+
+        if flags.url is not None:
+            attachment_file = flags.url
+        elif ctx.message.attachments:
+            attachment_file = ctx.message.attachments[0].url
+        else:
+            # check for latest image in channel
+            attachment_file = await check_image(ctx)
 
         async with ctx.channel.typing():
             async with self.bot.session.get(attachment_file) as attach:
                 image_data = await attach.read()
                 if image_data:
                     im = Image.open(io.BytesIO(image_data))
-
-                    im.paste(ball, (100, 100)) # returns None, check docs from now on
+                    if flags.x:
+                        imgX = flags.x
+                    else:
+                        imgX = int(im.width / 2) - (ball.width // 2)
+                    if flags.y:
+                        imgY = flags.y
+                    else:
+                        imgY = int(im.height / 2) - (ball.height // 2)
+                    im.paste(ball, (imgX, imgY)) # returns None, check docs from now on
                     im.save(buffer, 'PNG')
                     buffer.seek(0)
                     await ctx.send(file=discord.File(buffer, "balls.png"))
@@ -258,18 +279,44 @@ class Fun(commands.Cog):
                 await ctx.send(file=discord.File(buffer, "baked.png"))
                 buffer.close()
 
-    @commands.command(description="adds impact font to an image (UNFINISHED)")
-    async def impact(self, ctx: commands.Context, url=None, message=None):
+    @commands.command(description="usage: >impact top: <text> bottom: <text> url: <url> (only 1 argument is needed)")
+    async def impact(self, ctx: commands.Context, *, flags: ImageFlags):
         buffer = io.BytesIO()
-        attachment_file = await check_image(ctx, url)
-        font = ImageFont.truetype("files/impact.ttf")
+        if flags.url is not None:
+            attachment_file = flags.url
+        elif ctx.message.attachments:
+            attachment_file = ctx.message.attachments[0].url
+        else:
+            # check for latest image in channel
+            attachment_file = await check_image(ctx)
 
         async with ctx.channel.typing():
             async with self.bot.session.get(attachment_file) as attach:
                 image_data = await attach.read()
                 base_image = Image.open(io.BytesIO(image_data))
+                
+                # scale text y offset based on image size
+                offsetY = base_image.height * 0.05
+                topTextPos = (base_image.width / 2, offsetY)
+                bottomTextPos = (base_image.width / 2, base_image.height - offsetY)
+
+                fontSize = 30
+                font = ImageFont.truetype("files/impact.ttf", size=fontSize)
+                # scale text based on image size
+                imgAvgSize = (base_image.size[0] + base_image.size[1]) / 2
+                while font.size < 0.1 * imgAvgSize:
+                    fontSize += 1
+                    font = ImageFont.truetype("files/impact.ttf", size=fontSize)
                 draw = ImageDraw.Draw(base_image)
-                draw.text((base_image.width/2.5, 20), message, font=font)
+
+                # check for top text
+                if flags.top:
+                    draw.text(topTextPos, text=flags.top, fill="white", font=font,
+                              anchor="mt", stroke_width=4, stroke_fill="black")
+                # check for bottom text
+                if flags.bottom:
+                    draw.text(bottomTextPos, text=flags.bottom, fill="white", font=font,
+                              anchor="mb", stroke_width=4, stroke_fill="black")
 
                 base_image.save(buffer, 'PNG')
                 buffer.seek(0)
@@ -387,5 +434,5 @@ class Fun(commands.Cog):
             
     """
 
-def setup(bot):
-    bot.add_cog(Fun(bot))
+async def setup(bot):
+    await bot.add_cog(Fun(bot))

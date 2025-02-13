@@ -1,10 +1,11 @@
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 from discord.ext import commands
+import io
 
 
 async def check_image(ctx: commands.Context, url=None):
     if ctx.message.attachments:
-        if ctx.message.attachments[0].filename.lower().endswith(('png','jpg','jpeg','webp','bmp')):
+        if ctx.message.attachments[0].filename.lower().endswith(('png','jpg','jpeg','webp','bmp','gif')):
             attachment_file = ctx.message.attachments[0].url
             print("direct attachment")
             return attachment_file
@@ -18,7 +19,7 @@ async def check_image(ctx: commands.Context, url=None):
         async for msg in ctx.channel.history(limit=40):
             # check if attachments exist, then check if attachment is img
             if msg.attachments:
-                if msg.attachments[0].filename.lower().endswith(('png','jpg','jpeg','webp','bmp')):
+                if msg.attachments[0].filename.lower().endswith(('png','jpg','jpeg','webp','bmp','gif')):
                     return msg.attachments[0].url
             elif "http" in msg.content:
                 msgContent = msg.content
@@ -28,5 +29,37 @@ async def check_image(ctx: commands.Context, url=None):
             else:
                 print("invalid image")
 
-async def load_image():
-    pass
+
+async def imageCheck(ctx: commands.Context, session):
+    if ctx.message.attachments:
+        imgUrl = ctx.message.attachments[0].url
+        print("prompt has attachment")
+    elif "http" in ctx.message.content:
+        content = ctx.message.content
+        httpContent = content.split("http")
+        splitContent = httpContent[1].split(" ")
+        imgUrl = "http" + splitContent[0]
+        print("prompt has url")
+    else:
+        print("direct attachment or url in message")
+        async for msg in ctx.channel.history(limit=40):
+            if msg.attachments:
+                if msg.attachments[0].filename.lower().endswith(('png','jpg','jpeg','webp','bmp')):
+                    print("found message in history with attachment")
+                    return msg.attachments[0].url
+                elif "http" in msg.content:
+                    print("found message in history with http")
+                    msgContent = msg.content
+                    split = msgContent.split("http")
+                    splitEnd = split[1].split(" ")
+                    return "http" + splitEnd[0]
+                else:
+                    print("invalid image")
+
+    async with session.get(imgUrl) as attach:
+        if attach.status != 200:
+            print("failed to fetch image")
+            return
+        imageData = await attach.read()
+        img = Image.open(io.BytesIO(imageData))
+        return img

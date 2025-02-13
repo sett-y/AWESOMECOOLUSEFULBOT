@@ -8,21 +8,23 @@ async def SpotifySong(url):
                                             client_secret=spotify_client_secret)
     sp = spotipy.Spotify(auth_manager=auth_manager)
 
+    spotify_id = url.split('/')[-1].split('?')[0]
+
     # logic to decide between song and album
     try:
-        userPlaylist = sp.playlist_items(playlist_id=url, additional_types="track")
+        userPlaylist = sp.playlist_items(playlist_id=spotify_id, additional_types="track")
         return userPlaylist, "playlist"
     except Exception as e:
         print("type is not playlist")
-        if e:
-            print("exception found:")
-            print(f"{e}\n{traceback.print_exc}")
+        print(f"exception found: {e}")
+        traceback.print_exc()
     
     try:
-        userAlbum = sp.album_tracks(album_id=url)
+        userAlbum = sp.album_tracks(album_id=spotify_id)
         return userAlbum, "album"
     except Exception as e:
         print("type is not album or playlist")
-        if e:
-            print("exception found:")
-            print(f"{e}\n{traceback.print_exc()}")
+        print(f"exception found: {e}")
+        traceback.print_exc()
+
+    return None, "unknown"

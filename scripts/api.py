@@ -1,6 +1,9 @@
 import google.generativeai as genai
 import scripts.config
 from discord.ext import commands
+from PIL import Image
+from scripts.helpers.image_helpers import imageCheck
+import io
 
 #TODO: open movie database
 #TODO: weather
@@ -13,7 +16,8 @@ promptNum = 40
 initialExplanation = "You are the discord bot \"AWESOMECOOLUSEFULBOT\". \
 Below is the history of the recent user prompts along with your responses. While understanding \
 the context of the previous text, analyze and respond to \
-the user's latest prompt. Any message prefixed with a username and : are from users. \
+the user's latest prompt. You are also able to analyze images that users \
+send. Any message prefixed with a username and : are from users. \
 Your responses have no prefix and will be automatically formatted in the history. \
 Keep track of which user sent which message. Keep your messages under 2000 characters\
 unless the user states otherwise. Respond to the user, do not repeat any \
@@ -60,9 +64,10 @@ async def addServerContextHistory(userResponse: str, botResponse: str, ctx: comm
         print("history over max, popping")
         contextDict[guildID].pop(0)
         contextDict[guildID].append(history)
-        
 
-async def serverPrompt(ctx: commands.Context, prompt) -> str:
+
+          
+async def serverPrompt(ctx: commands.Context, prompt, session) -> str:
     guildID = ctx.guild.id
     model_config = genai.GenerationConfig(temperature=1.8)
     
@@ -81,13 +86,20 @@ async def serverPrompt(ctx: commands.Context, prompt) -> str:
     else:
         fullContext = initialExplanation + userPrompt
 
-    response = await model.generate_content_async(fullContext)
-    await addServerContextHistory(prompt, response.text, ctx)
+    img = await imageCheck(ctx, session)
+    if img:        
+        try:
+            response = await model.generate_content_async(contents=[fullContext, img])
+        except Exception as e:
+            print(e)
+    else:
+        response = await model.generate_content_async(fullContext)
 
+    await addServerContextHistory(prompt, response.text, ctx)
     return response.text
 
 # fix names
-async def genericPrompt(ctx: commands.Context, prompt) -> str:
+async def genericPrompt(ctx: commands.Context, prompt, session) -> str:
     model_config = genai.GenerationConfig(temperature=1.8)
     
     genai.configure(api_key=scripts.config.genai_token)
@@ -102,19 +114,47 @@ async def genericPrompt(ctx: commands.Context, prompt) -> str:
     else:
         fullContext = initialExplanation + userPrompt
 
-    response = await model.generate_content_async(fullContext)
-    await addContextHistory(prompt, response.text, ctx)
+    img = await imageCheck(ctx, session)
+    if img:
+        try:
+            response = await model.generate_content_async(contents=[fullContext, img])
+        except Exception as e:
+            print(e)
+    else:
+        response = await model.generate_content_async(fullContext)
 
+    await addContextHistory(prompt, response.text, ctx)
     return response.text
 
-async def singlePrompt(prompt):
+async def greentext(ctx, prompt, session):
+    model_config = genai.GenerationConfig(temperature=1.2)
+    genai.configure(api_key=scripts.config.genai_token)
+    model = genai.GenerativeModel("gemini-2.0-flash-exp", generation_config=model_config)
+    print("generating greentext...")
+
+    img = await imageCheck(ctx, session)
+    if not prompt:
+        prompt = ""
+    gtPrompt = f"generate a 4chan style greentext, either based on the following prompt, or, if there is \
+    no followup prompt, make one up. Do not add extra spacing between your posts. Do not state that you are \
+    making this prompt, pretend you are on 4chan posting that. Here is the prompt if it exists: {prompt}"
+    if img:
+        response = await model.generate_content_async(contents=[gtPrompt, img])
+    else:
+        response = await model.generate_content_async(gtPrompt)
+    return response.text
+
+async def singlePrompt(ctx, prompt, session):
     model_config = genai.GenerationConfig(temperature=1.8)
     genai.configure(api_key=scripts.config.genai_token)
     model = genai.GenerativeModel("gemini-2.0-flash-exp", generation_config=model_config)
     print("generating single prompt...")
 
-    response = await model.generate_content_async(prompt)
-
+    img = await imageCheck(ctx, session)
+    if img:
+        response = await model.generate_content_async(contents=[prompt, img])
+    else:
+        response = await model.generate_content_async(prompt)
     return response.text
 
 async def fortune() -> str:
@@ -140,7 +180,7 @@ async def fortune() -> str:
     return response.text
 
 # main difference here is prompt variable is added to deque along with preset prompt
-async def asciiArt(prompt) -> str:
+async def asciiArt(ctx, prompt, session) -> str:
     model_config = genai.GenerationConfig(temperature=2.0,top_k=1,top_p=1)
 
     genai.configure(api_key=scripts.config.genai_token)
@@ -148,13 +188,18 @@ async def asciiArt(prompt) -> str:
 
     print("generating ascii...")
 
-    response = await model.generate_content_async(f"generate ascii art according to the given\
-    prompt, keep within 2000 characters. Prompt: {prompt}")
+    img = await imageCheck(ctx, session)
+    promptVar = f"generate ascii art according to the given \
+    prompt, keep within 2000 characters. Prompt: {prompt}"
+
+    if img:
+        response = await model.generate_content_async(contents=[promptVar, img])
+    else:
+        response = await model.generate_content_async(promptVar)
 
     return response.text
 
-
-async def oppositePrompt(prompt) -> str:
+async def oppositePrompt(ctx, prompt, session) -> str:
     model_config = genai.GenerationConfig(temperature=1.7,top_k=1,top_p=1)
 
     genai.configure(api_key=scripts.config.genai_token)
@@ -162,11 +207,16 @@ async def oppositePrompt(prompt) -> str:
 
     print("generating EVIL text...")
 
-    response = await model.generate_content_async(f"(keep this prompt under 2000 characters!) do or say the OPPOSITE\
+    img = await imageCheck(ctx, session)
+    promptVar = f"(keep this prompt under 2000 characters!) do or say the OPPOSITE\
     of what the following prompt says, while keeping their typing style and grammar in mind \
-    (decide whether to reverse their words or give them the\
-    opposite information that they asked for, based on which would be a more interesting \
-    response.): {prompt}")
+    (decide whether to reverse their words or give them the opposite information that \
+    they asked for, based on which would be a more interesting response.): {prompt}"
+
+    if img:
+        response = await model.generate_content_async(contents=[promptVar, img])
+    else:
+        response = await model.generate_content_async(promptVar)
 
     return response.text
 

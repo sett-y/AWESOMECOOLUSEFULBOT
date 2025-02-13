@@ -3,6 +3,7 @@ import discord
 import scripts.api as api
 import os
 import scripts.voicegen as voicegen
+#from scripts.helpers.image_helpers import check_image
 
 class AI(commands.Cog):
     def __init__(self, bot):
@@ -12,13 +13,14 @@ class AI(commands.Cog):
     async def prompt(self, ctx: commands.Context, *, arg):
         try:
             async with ctx.channel.typing():
-                response = await api.serverPrompt(ctx, arg)
+                response = await api.serverPrompt(ctx, arg, self.bot.session)
         except ValueError:
             await ctx.send("[message blocked retard]")
             print("message blocked")
         if response:
             print("response generated")
         else:
+            print("failed to generate response")
             return
         
         await self.sendResponse(ctx, response)
@@ -27,7 +29,23 @@ class AI(commands.Cog):
     async def globalprompt(self, ctx: commands.Context, *, arg):
         try:
             async with ctx.channel.typing():
-                response = await api.genericPrompt(ctx, arg)
+                response = await api.genericPrompt(ctx, arg, self.bot.session)
+        except ValueError:
+            await ctx.send("[message blocked retard]")
+            print("message blocked")
+        if response:
+            print("response generated")
+        else:
+            print("failed to generate response")
+            return
+        
+        await self.sendResponse(ctx, response)
+
+    @commands.command(aliases=["greentext","gt"])
+    async def kekmode(self, ctx: commands.Context, *, kek=None):
+        try:
+            async with ctx.channel.typing():
+                response = await api.greentext(ctx, kek, self.bot.session)
         except ValueError:
             await ctx.send("[message blocked retard]")
             print("message blocked")
@@ -43,7 +61,7 @@ class AI(commands.Cog):
         await ctx.send("generating EVIL response...")
         try:
             async with ctx.channel.typing():
-                response = await api.oppositePrompt(arg)
+                response = await api.oppositePrompt(ctx, arg, self.bot.session)
         except ValueError:
             await ctx.send("[message blocked retard]")
             print("message blocked")
@@ -82,7 +100,7 @@ class AI(commands.Cog):
     @commands.command(name="ascii", description="generate ascii art based on user prompt")
     async def asciiGen(self, ctx: commands.Context, *, arg):
         await ctx.send("generating ascii...")
-        ascii = await api.asciiArt(arg)
+        ascii = await api.asciiArt(ctx, arg, self.bot.session)
         print("generated")
         await ctx.send(f"```{ascii}```")
 
@@ -99,7 +117,7 @@ class AI(commands.Cog):
                 file.write(history)
             
             await ctx.send(file=discord.File("history.txt"))
-            os.remove(f"history.txt")
+            os.remove("history.txt")
         else:
             await ctx.send(history)
 
@@ -176,12 +194,12 @@ class AI(commands.Cog):
     #async def voteclear(self, ctx: commands.Context):
     #    pass
         
-    @commands.command(aliases=["vg"], description="""'af': 'Afrikaans', 'am': 'Amharic', 'ar': 'Arabic', 'bg': 'Bulgarian', 'bn': 'Bengali', 'bs': 'Bosnian', 'ca': 'Catalan', 'cs': 'Czech', 'cy': 'Welsh', 'da': 'Danish', 'de': 'German', 'el': 'Greek', 'en': 'English', 'es': 'Spanish', 'et': 'Estonian', 'eu': 'Basque', 'fi': 'Finnish', 'fr': 'French', 'fr-CA': 'French (Canada)', 'gl': 'Galician', 'gu': 'Gujarati', 'ha': 'Hausa', 'hi': 'Hindi', 'hr': 'Croatian', 'hu': 'Hungarian', 'id': 'Indonesian', 'is': 'Icelandic', 'it': 'Italian', 'iw': 'Hebrew', 'ja': 'Japanese', 'jw': 'Javanese', 'km': 'Khmer', 'kn': 'Kannada', 'ko': 'Korean', 'la': 'Latin', 'lt': 'Lithuanian', 'lv': 'Latvian', 'ml': 'Malayalam', 'mr': 'Marathi', 'ms': 'Malay', 'my': 'Myanmar (Burmese)', 'ne': 'Nepali', 'nl': 'Dutch', 'no': 'Norwegian', 'pa': 'Punjabi (Gurmukhi)', 'pl': 'Polish', 'pt': 'Portuguese (Brazil)', 'pt-PT': 'Portuguese (Portugal)', 'ro': 'Romanian', 'ru': 'Russian', 'si': 'Sinhala', 'sk': 'Slovak', 'sq': 'Albanian', 'sr': 'Serbian', 'su': 'Sundanese', 'sv': 'Swedish', 'sw': 
-'Swahili', 'ta': 'Tamil', 'te': 'Telugu', 'th': 'Thai', 'tl': 'Filipino', 'tr': 'Turkish', 'uk': 'Ukrainian', 'ur': 'Urdu', 'vi': 'Vietnamese', 'yue': 'Cantonese', 'zh-CN': 'Chinese (Simplified)', 'zh-TW': 'Chinese (Mandarin/Taiwan)', 'zh': 'Chinese (Mandarin)'""")
-    async def voicegen(self, ctx: commands.Context, lang, *, message):
-        async with ctx.channel.typing():
-            await voicegen.main(message, lang)
-            await ctx.send(file=discord.File("scripts/voicegeneration/gen.mp3"))
+    #@commands.command(aliases=["vg"], description="""'af': 'Afrikaans', 'am': 'Amharic', 'ar': 'Arabic', 'bg': 'Bulgarian', 'bn': 'Bengali', 'bs': 'Bosnian', 'ca': 'Catalan', 'cs': 'Czech', 'cy': 'Welsh', 'da': 'Danish', 'de': 'German', 'el': 'Greek', 'en': 'English', 'es': 'Spanish', 'et': 'Estonian', 'eu': 'Basque', 'fi': 'Finnish', 'fr': 'French', 'fr-CA': 'French (Canada)', 'gl': 'Galician', 'gu': 'Gujarati', 'ha': 'Hausa', 'hi': 'Hindi', 'hr': 'Croatian', 'hu': 'Hungarian', 'id': 'Indonesian', 'is': 'Icelandic', 'it': 'Italian', 'iw': 'Hebrew', 'ja': 'Japanese', 'jw': 'Javanese', 'km': 'Khmer', 'kn': 'Kannada', 'ko': 'Korean', 'la': 'Latin', 'lt': 'Lithuanian', 'lv': 'Latvian', 'ml': 'Malayalam', 'mr': 'Marathi', 'ms': 'Malay', 'my': 'Myanmar (Burmese)', 'ne': 'Nepali', 'nl': 'Dutch', 'no': 'Norwegian', 'pa': 'Punjabi (Gurmukhi)', 'pl': 'Polish', 'pt': 'Portuguese (Brazil)', 'pt-PT': 'Portuguese (Portugal)', 'ro': 'Romanian', 'ru': 'Russian', 'si': 'Sinhala', 'sk': 'Slovak', 'sq': 'Albanian', 'sr': 'Serbian', 'su': 'Sundanese', 'sv': 'Swedish', 'sw': 
+#'Swahili', 'ta': 'Tamil', 'te': 'Telugu', 'th': 'Thai', 'tl': 'Filipino', 'tr': 'Turkish', 'uk': 'Ukrainian', 'ur': 'Urdu', 'vi': 'Vietnamese', 'yue': 'Cantonese', 'zh-CN': 'Chinese (Simplified)', 'zh-TW': 'Chinese (Mandarin/Taiwan)', 'zh': 'Chinese (Mandarin)'""")
+    #async def voicegen(self, ctx: commands.Context, lang, *, message):
+    #    async with ctx.channel.typing():
+    #        await voicegen.main(message, lang)
+    #        await ctx.send(file=discord.File("scripts/voicegeneration/gen.mp3"))
 
     @commands.command(description="clears all gemini context history")
     @commands.is_owner()
@@ -192,12 +210,12 @@ class AI(commands.Cog):
     async def singleprompt(self, ctx: commands.Context, *, arg):
         try:
             async with ctx.channel.typing():
-                response = await api.singlePrompt(arg)
+                response = await api.singlePrompt(ctx, arg, self.bot.session)
         except ValueError:
             await ctx.send("[message blocked retard]")
             print("message blocked")
 
         await self.sendResponse(ctx, response)
 
-def setup(bot):
-    bot.add_cog(AI(bot))
+async def setup(bot):
+    await bot.add_cog(AI(bot))
