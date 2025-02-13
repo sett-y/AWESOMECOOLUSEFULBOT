@@ -1,4 +1,4 @@
-from discord.ext import commands, bridge, tasks
+from discord.ext import commands, tasks
 import discord
 import PIL
 import random
@@ -16,7 +16,7 @@ from scripts.helpers.db_helpers import return_guild_emoji
 
 
 class Scrapers(commands.Cog):
-    def __init__(self, bot: discord.Bot):
+    def __init__(self, bot):
         self.bot = bot
         #self.bot.add_listener(self.on_raw_reaction_add, 'on_raw_reaction_add')
         self.reactionsNeeded = 1
@@ -24,19 +24,13 @@ class Scrapers(commands.Cog):
 
     @commands.command(aliases=["felinefact","cat"], description="displays a random cat fact")
     async def catfact(self, ctx: commands.Context):
-        if isinstance(ctx, bridge.BridgeApplicationContext):
-            await ctx.defer() # must be followed up with followup.send
         try:
-            if isinstance(ctx, bridge.BridgeExtContext):
-                await ctx.trigger_typing()
-            catFact = await catFacts.get_fact()
-            if isinstance(ctx, bridge.BridgeApplicationContext):
-                await ctx.followup.send(catFact)
-            else:
+            async with ctx.channel.typing():
+                catFact = await catFacts.get_fact()
                 await ctx.send(catFact)
         except:
             print("error while scraping page")
-            await ctx.followup.send("error while scraping page")
+            await ctx.send("error while scraping page")
 
     @commands.command(description="displays info about dota match")
     async def display_match(self, ctx: commands.Context): # add url back to params
@@ -109,25 +103,6 @@ class Scrapers(commands.Cog):
         embed.set_image(url="https://i.ytimg.com/vi/b0zE0jrAUXo/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLCZVNqjADBwRPMkz8T7nzYgeaE59A")
         
         await ctx.send(embed=embed)
-        
-    #TODO: search feature
-    @commands.command(aliases=["sotd","spotifysong"], description="sends a random song from a spotify album/playlist")
-    async def spotify(self, ctx: commands.Context, url):
-        # shouldnt need to defer since this is fast
-        song, apiResult = await SpotifySong(url)
-        # logic to choose between album and playlist
-        if apiResult == "playlist":
-            songItems = song['items']
-            ranSongChoice = random.choice(songItems)
-            choice = ranSongChoice['track']['external_urls']['spotify']
-            await ctx.respond(choice)
-        elif apiResult == "album":
-            songItems = song['items']
-            ranSongChoice = random.choice(songItems)
-            choice = ranSongChoice['external_urls']['spotify']
-            await ctx.respond(choice)
-        else:
-            print("input is neither playlist nor album")
 
     #TODO: cmd to display latest post
     @commands.command(aliases=["bsky","bluesky","latestpost"], description="fetches last bsky post")
@@ -261,5 +236,5 @@ class Scrapers(commands.Cog):
             #TODO: normal reply w/ slash command
             
 
-def setup(bot):
-    bot.add_cog(Scrapers(bot))
+async def setup(bot):
+    await bot.add_cog(Scrapers(bot))
