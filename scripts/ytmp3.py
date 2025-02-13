@@ -12,7 +12,7 @@ def yt2mp3(url) -> str:
     #    url = "https://www.youtube.com/v=?" + url
 
     url = url.strip()
-    vidInfo = YouTube(url)
+    vidInfo = YouTube(url, 'WEB')
     san = vidInfo.title
     invalidChars = "<>:/\\?*|"
     for char in invalidChars:
@@ -39,7 +39,7 @@ def yt2mp4(url) -> str:
     output_path = os.getcwd()
 
     url = url.strip()
-    vidInfo = YouTube(url)
+    vidInfo = YouTube(url, 'WEB')
     invalidChars = "<>:/\\?*|"
     san = vidInfo.title
     for char in invalidChars:
