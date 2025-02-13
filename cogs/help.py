@@ -3,10 +3,18 @@ import discord
 
 #TODO: replace help command with embed menu that has multiple pages
 
+class HelpExtend(commands.MinimalHelpCommand):
+    async def send_pages(self):
+        destination = self.get_destination()
+        for page in self.paginator.pages:
+            embed = discord.Embed(description=page)
+            await destination.send(embed=embed)
+
 class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.bot.help_command = HelpExtend()
 
 
-def setup(bot):
-    bot.add_cog(Help(bot))
+async def setup(bot):
+    await bot.add_cog(Help(bot))
