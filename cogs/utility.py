@@ -1,7 +1,7 @@
-from discord.ext import commands, bridge
+from discord.ext import commands
 import discord
-from scripts.googlescrape import get_search
-from scripts.helpers.db_helpers import return_guild_emoji
+#from scripts.googlescrape import get_search
+from scripts.helpers.db_helpers import return_guild_emoji, check_column
 import random
 
 class Util(commands.Cog):
@@ -25,10 +25,7 @@ class Util(commands.Cog):
 
     @commands.command(description="fetches server picture")
     async def servpic(self, ctx: commands.Context):
-        if isinstance(ctx, bridge.BridgeApplicationContext):
-            await ctx.respond(ctx.guild.icon)
-        else:
-            await ctx.send(ctx.guild.icon)
+        await ctx.send(ctx.guild.icon)
 
     @commands.command(description="displays user join date")
     async def joindate(self, ctx: commands.Context, member: discord.Member = None):
@@ -44,22 +41,22 @@ class Util(commands.Cog):
         pfp = member.avatar.url
         await ctx.send(pfp)
 
-    @commands.command()
-    async def delivery_notif(self, ctx: commands.Context, url):
-        pass
+    #@commands.command()
+    #async def delivery_notif(self, ctx: commands.Context, url):
+    #    pass
 
-    @commands.command(description='google search! ! ')
-    async def google(self, ctx: commands.Context, *, search_term):
-        embed = discord.Embed(title="gooel")
-        async with ctx.channel.typing():
-            data = await get_search(search_term)
+    #@commands.command(description='google search! ! ')
+    #async def google(self, ctx: commands.Context, *, search_term):
+    #    embed = discord.Embed(title="gooel")
+    #    async with ctx.channel.typing():
+    #        data = await get_search(search_term)
 
-        for i in range(len(data)):
-            title = data[i]['title']
-            url = data[i]['url']
-            site_title = data[i]['site_title']
-            embed.add_field(name=f'{site_title}', value=f'[{title}]({url})')
-        await ctx.send(embed=embed)
+    #    for i in range(len(data)):
+    #        title = data[i]['title']
+    #        url = data[i]['url']
+    #        site_title = data[i]['site_title']
+    #        embed.add_field(name=f'{site_title}', value=f'[{title}]({url})')
+    #    await ctx.send(embed=embed)
 
     @commands.command(description="sends list of commands w/ aliases")
     async def aliases(self, ctx: commands.Context):
@@ -85,6 +82,7 @@ class Util(commands.Cog):
         #cur = con.cursor()
 
         table_name = f"guild_{ctx.guild.id}"
+        column_name = f"channel_{ctx.channel.id}"
 
         query = '''
         SELECT name FROM sqlite_master
@@ -111,14 +109,30 @@ class Util(commands.Cog):
             await ctx.send(f"{user_emoji}")
         # access existing table
         else:
-            # updates values from table column
-            print("clearing column data")
-            delquery = f'''
-            UPDATE {table_name}
-            SET emoji = ?
-            ''' # no WHERE because table will only have 1 emoji column, so clearing all doesnt matter
-            self.bot.cur.execute(delquery,(user_emoji,))
-            await ctx.send(f"{user_emoji}")
+            # check for column
+            col = await check_column(table_name, column_name, self.bot.cur)
+            if not col:
+                createQuery = f'''
+                ALTER TABLE {table_name}
+                ADD COLUMN {column_name} TEXT
+                '''
+                self.bot.cur.execute(createQuery)
+
+                insertQuery = f'''
+                INSERT INTO {table_name} ({column_name})
+                VALUES (?)
+                '''
+                self.bot.cur.execute(insertQuery,(user_emoji,))
+                await ctx.send(f"{user_emoji}")
+            elif col[0][0]:
+                # updates values from table column
+                print("clearing column data")
+                delquery = f'''
+                UPDATE {table_name}
+                SET emoji = ?
+                ''' # no WHERE because table will only have 1 emoji column, so clearing all doesnt matter
+                self.bot.cur.execute(delquery,(user_emoji,))
+                await ctx.send(f"{user_emoji}")
             
         self.bot.con.commit()
 
@@ -153,12 +167,15 @@ class Util(commands.Cog):
         serverEmojis = ctx.message.guild.emojis
         guildBskyEmoji = await return_guild_emoji(ctx.guild.id, self.bot.cur, self.bot.defaultEmoji)
         randomEmoji = random.choice(serverEmojis)
+        emojiStr = f"{guildBskyEmoji} {randomEmoji}\n"
         await ctx.send(f"{guildBskyEmoji}, {randomEmoji}")
         if str(randomEmoji) == str(guildBskyEmoji):
-            await ctx.send("hawk")
+            emojiStr += "hawk"
+            await ctx.send(emojiStr)
         else:
-            await ctx.send("tuah")
+            emojiStr += "tuah"
+            await ctx.send(emojiStr)
 
 
-def setup(bot):
-    bot.add_cog(Util(bot))
+async def setup(bot):
+    await bot.add_cog(Util(bot))

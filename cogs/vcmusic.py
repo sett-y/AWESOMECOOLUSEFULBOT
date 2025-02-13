@@ -1,9 +1,12 @@
 from pytubefix import YouTube
-from discord.ext import commands, bridge
+from discord.ext import commands
 import discord
 import os
 import scripts.ytmp3 as ytmp3
 import asyncio
+import random
+from scripts.SongOfTheDay import SpotifySong
+from moviepy import vfx, VideoFileClip
 #import wavelink
 
 #TODO: for files that go over upload limit, upload to temp file hosting service and send link
@@ -65,7 +68,41 @@ class Music(commands.Cog):
         tmp = ytmp3.yt4title
         os.remove(os.getcwd() + "\\" + tmp + ".mp4")
 
+    
+    #TODO: search feature
+    @commands.command(aliases=["sotd","spotifysong"], description="sends a random song from a spotify album/playlist")
+    async def spotify(self, ctx: commands.Context, url):
+        try:
+            song, apiResult = await SpotifySong(url)
+        except Exception as e:
+            print(e)
+            return
+        # logic to choose between album and playlist
+        if apiResult == "playlist":
+            songItems = song['items']
+            ranSongChoice = random.choice(songItems)
+            choice = ranSongChoice['track']['external_urls']['spotify']
+            if choice:
+                print(choice)
+            else:
+                print("no choice found")
+            await ctx.send(choice)
+        elif apiResult == "album":
+            songItems = song['items']
+            ranSongChoice = random.choice(songItems)
+            choice = ranSongChoice['external_urls']['spotify']
+            await ctx.send(choice)
+        else:
+            print("input is neither playlist nor album")
 
+    @commands.command()
+    async def speed(self, ctx: commands.Context, url=None):
+        if ctx.message.attachments:
+            pass
+        elif url:
+            pass
+
+    
     #@commands.command()
     #async def vcsong(ctx, url):
         #channel = ctx.author.voice.channel
@@ -88,5 +125,5 @@ class Music(commands.Cog):
     # @button
         
 
-def setup(bot):
-    bot.add_cog(Music(bot))
+async def setup(bot):
+    await bot.add_cog(Music(bot))
