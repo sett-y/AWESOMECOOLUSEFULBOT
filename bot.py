@@ -13,7 +13,7 @@ from scripts.helpers.db_helpers import return_guild_emoji
 # Initialize the bot
 intents = discord.Intents.default()
 intents.message_content = True
-bot = commands.Bot(command_prefix=[">", "bc"], intents=intents)
+bot = commands.Bot(command_prefix=[">", "bc"], intents=intents, help_command=commands.MinimalHelpCommand())
 bot.logger = logging.basicConfig(level=logging.INFO)
 
 # Global variables
@@ -26,7 +26,7 @@ bot.defaultEmoji = "🚎"
 async def load_extensions():
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py'):
-            bot.load_extension(name=f"cogs.{filename[:-3]}")
+            await bot.load_extension(name=f"cogs.{filename[:-3]}")
     print("extensions loaded")
 
 @bot.event
@@ -45,10 +45,22 @@ async def on_message(message: discord.Message):
         randomEmoji = random.choice(serverEmojis)
         if str(guildBskyEmoji) == str(randomEmoji):
             return
-        await message.add_reaction(randomEmoji)
+        try:
+            await message.add_reaction(randomEmoji)
+        except discord.Forbidden as e:
+            print(e)
+            print(f"bot is blocked by {message.author.name}")
+        except Exception as e:
+            print(e)
     elif reactChance <= 0.0004:
         dragonEmoji = "🐲"
-        await message.add_reaction(dragonEmoji)
+        try:
+            await message.add_reaction(dragonEmoji)
+        except discord.Forbidden as e:
+            print(e)
+            print(f"bot is blocked by {message.author.name}")
+        except Exception as e:
+            print(e)
         await message.channel.send("DRAGON ALERT!!!!!", file=discord.File("files/images/dragonaward.png","dragon_award.png"))
     
     # user tracking
@@ -69,6 +81,9 @@ async def on_message(message: discord.Message):
 
     if "brian look out" in message.content.lower():
         await message.channel.send("https://tenor.com/view/brian-family-guy-family-guy-sad-moment-brian-death-death-gif-19315370")
+
+    if "only a spoonfull" in message.content.lower():
+        await message.channel.send("https://tenor.com/view/spoon-big-spoon-funny-mad-evil-stare-gif-17762991")
 
     await bot.process_commands(message)
 
