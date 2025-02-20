@@ -2,18 +2,20 @@ from discord.ext import commands
 import discord
 import scripts.api as api
 import os
-import scripts.voicegen as voicegen
 #from scripts.helpers.image_helpers import check_image
 
 class AI(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.clearVote = []
+        self.userClearVoted = []
 
     @commands.command(aliases=["serverprompt","p"], description="generate a response based on prompt given (history is per server)")
-    async def prompt(self, ctx: commands.Context, *, arg):
+    @commands.cooldown(1, 3, commands.BucketType.user)
+    async def prompt(self, ctx: commands.Context, *, message):
         try:
             async with ctx.channel.typing():
-                response = await api.serverPrompt(ctx, arg, self.bot.session)
+                response = await api.serverPrompt(ctx, message, self.bot.session)
         except ValueError:
             await ctx.send("[message blocked retard]")
             print("message blocked")
@@ -26,10 +28,10 @@ class AI(commands.Cog):
         await self.sendResponse(ctx, response)
         
     @commands.command(aliases=["gemini","ai"], description="generate a response based on prompt given")
-    async def globalprompt(self, ctx: commands.Context, *, arg):
+    async def globalprompt(self, ctx: commands.Context, *, message):
         try:
             async with ctx.channel.typing():
-                response = await api.genericPrompt(ctx, arg, self.bot.session)
+                response = await api.genericPrompt(ctx, message, self.bot.session)
         except ValueError:
             await ctx.send("[message blocked retard]")
             print("message blocked")
@@ -46,6 +48,21 @@ class AI(commands.Cog):
         try:
             async with ctx.channel.typing():
                 response = await api.greentext(ctx, kek, self.bot.session)
+        except ValueError:
+            await ctx.send("[message blocked retard]")
+            print("message blocked")
+        if response:
+            print("response generated")
+        else:
+            return
+        
+        await self.sendResponse(ctx, response)
+
+    @commands.command(aliases=["asshole","amitheasshole"])
+    async def aita(self, ctx: commands.Context, *, prompt=None):
+        try:
+            async with ctx.channel.typing():
+                response = await api.aita(ctx, prompt, self.bot.session)
         except ValueError:
             await ctx.send("[message blocked retard]")
             print("message blocked")
@@ -159,7 +176,7 @@ class AI(commands.Cog):
         return messages
 
     @commands.command(description="google gemini summarizes N recent chat messages")
-    @commands.cooldown(1, 2, commands.BucketType.user)
+    @commands.cooldown(1, 3, commands.BucketType.user)
     async def summarize(self, ctx: commands.Context, n: int):
         n = int(n)
         # check for valid user input
@@ -189,33 +206,56 @@ class AI(commands.Cog):
         else:
             await ctx.send("too dam long idiot")
 
-    # votes to clear server context history
-    #@commands.command()
-    #async def voteclear(self, ctx: commands.Context):
-    #    pass
         
     #@commands.command(aliases=["vg"], description="""'af': 'Afrikaans', 'am': 'Amharic', 'ar': 'Arabic', 'bg': 'Bulgarian', 'bn': 'Bengali', 'bs': 'Bosnian', 'ca': 'Catalan', 'cs': 'Czech', 'cy': 'Welsh', 'da': 'Danish', 'de': 'German', 'el': 'Greek', 'en': 'English', 'es': 'Spanish', 'et': 'Estonian', 'eu': 'Basque', 'fi': 'Finnish', 'fr': 'French', 'fr-CA': 'French (Canada)', 'gl': 'Galician', 'gu': 'Gujarati', 'ha': 'Hausa', 'hi': 'Hindi', 'hr': 'Croatian', 'hu': 'Hungarian', 'id': 'Indonesian', 'is': 'Icelandic', 'it': 'Italian', 'iw': 'Hebrew', 'ja': 'Japanese', 'jw': 'Javanese', 'km': 'Khmer', 'kn': 'Kannada', 'ko': 'Korean', 'la': 'Latin', 'lt': 'Lithuanian', 'lv': 'Latvian', 'ml': 'Malayalam', 'mr': 'Marathi', 'ms': 'Malay', 'my': 'Myanmar (Burmese)', 'ne': 'Nepali', 'nl': 'Dutch', 'no': 'Norwegian', 'pa': 'Punjabi (Gurmukhi)', 'pl': 'Polish', 'pt': 'Portuguese (Brazil)', 'pt-PT': 'Portuguese (Portugal)', 'ro': 'Romanian', 'ru': 'Russian', 'si': 'Sinhala', 'sk': 'Slovak', 'sq': 'Albanian', 'sr': 'Serbian', 'su': 'Sundanese', 'sv': 'Swedish', 'sw': 
-#'Swahili', 'ta': 'Tamil', 'te': 'Telugu', 'th': 'Thai', 'tl': 'Filipino', 'tr': 'Turkish', 'uk': 'Ukrainian', 'ur': 'Urdu', 'vi': 'Vietnamese', 'yue': 'Cantonese', 'zh-CN': 'Chinese (Simplified)', 'zh-TW': 'Chinese (Mandarin/Taiwan)', 'zh': 'Chinese (Mandarin)'""")
+    #'Swahili', 'ta': 'Tamil', 'te': 'Telugu', 'th': 'Thai', 'tl': 'Filipino', 'tr': 'Turkish', 'uk': 'Ukrainian', 'ur': 'Urdu', 'vi': 'Vietnamese', 'yue': 'Cantonese', 'zh-CN': 'Chinese (Simplified)', 'zh-TW': 'Chinese (Mandarin/Taiwan)', 'zh': 'Chinese (Mandarin)'""")
     #async def voicegen(self, ctx: commands.Context, lang, *, message):
     #    async with ctx.channel.typing():
     #        await voicegen.main(message, lang)
     #        await ctx.send(file=discord.File("scripts/voicegeneration/gen.mp3"))
 
-    @commands.command(description="clears all gemini context history")
-    @commands.is_owner()
-    async def clear(self, ctx: commands.Context):
-        pass
-
     @commands.command(aliases=["sp"])
-    async def singleprompt(self, ctx: commands.Context, *, arg):
+    async def singleprompt(self, ctx: commands.Context, *, prompt):
         try:
             async with ctx.channel.typing():
-                response = await api.singlePrompt(ctx, arg, self.bot.session)
+                response = await api.singlePrompt(ctx, prompt, self.bot.session)
         except ValueError:
             await ctx.send("[message blocked retard]")
             print("message blocked")
 
         await self.sendResponse(ctx, response)
+
+    # votes to clear server context history
+    @commands.command(aliases=["wipe", "memwipe", "mwipe", "clear"], description="calls a vote to clear server context history")
+    async def voteclear(self, ctx: commands.Context):
+        guildEmoji = "👆"
+
+        embed = discord.Embed(title="Clear Server History")
+        embed.add_field(name="", value="React to this message to vote on clearing the bot's server history.")
+
+        voteMsg = await ctx.send(embed=embed)
+        await voteMsg.add_reaction(guildEmoji)
+
+        self.clearVote.append(voteMsg.id)
+
+    # TODO: test multiple votes at once
+    @commands.Cog.listener()
+    async def on_reaction_add(self, reaction: discord.Reaction, user: discord.User):
+        messageID = reaction.message.id
+        guildEmoji = "👆"
+        voteThreshold = 4
+
+        if messageID in self.clearVote and reaction.emoji == guildEmoji and messageID not in self.userClearVoted:
+            if reaction.count == voteThreshold:
+                print("threshold reached")
+                # once vote reaches threshold, this message is ignored
+                self.userClearVoted.append(messageID)
+                # clear server history
+                await api.clearServerHistory(reaction.message)
+                await reaction.message.channel.send("server history cleared")
+
+    # gemma 2 test cmd
+    
 
 async def setup(bot):
     await bot.add_cog(AI(bot))

@@ -6,8 +6,6 @@ import io
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 from scripts.helpers.image_helpers import check_image
 
-#TODO: profiles
-
 #class FunFlags(commands.FlagConverter, prefix='-', delimiter=' '):
 #    width: int = commands.flag(default=150)
 #    height: int = commands.flag(default=150)
@@ -28,12 +26,13 @@ class Fun(commands.Cog):
     def __init__(self, bot):
         self.bot: discord.Bot = bot
         self.avatarVote = {} # store messages w/ active votes here
+        self.userVoted = []
 
     #@commands.cooldown(1, 10, commands.BucketType.user)
     @commands.command(description="repeats user's message", aliases=["print"])
     async def echo(self, ctx: commands.Context, *, message):
         botmessage = await ctx.send(message)
-        await botmessage.delete
+        await ctx.message.delete()
 
     #@commands.command(description="displays weather stats using a wttr.in wrapper")
     #async def weather(self, ctx: commands.Context, *, arg):
@@ -92,7 +91,7 @@ class Fun(commands.Cog):
         print("sleep done")
         await ctx.send(f"{ctx.author.mention} {arg} {message[0]} {message[1]}")
 
-    @commands.command(aliases=["reverse","reversetxt"], description="reverses text")
+    @commands.command(aliases=["reversetxt"], description="reverses text")
     async def reversetext(self, ctx: commands.Context, *, msg):
         msg = msg[::-1]
         await ctx.send(msg)
@@ -133,6 +132,7 @@ class Fun(commands.Cog):
             self.avatarVote[ctx.message.id] = ctx.message.attachments[0].url
             await ctx.message.add_reaction(guild_emoji)
             print("vote registered")
+            print(ctx.message.attachments[0].url)
         elif "http" in ctx.message.content:
             self.avatarVote[ctx.message.id] = ctx.message.content.strip()
             await ctx.message.add_reaction(guild_emoji)
@@ -144,12 +144,14 @@ class Fun(commands.Cog):
     async def on_reaction_add(self, reaction: discord.Reaction, user: discord.Member):
         messageID = reaction.message.id
         content = reaction.message.content
-
         guild_emoji = "👆"
+        voteThreshold = 4
 
         # checks if reacted message id has been recorded with vote command
-        if messageID in self.avatarVote and reaction.emoji == guild_emoji:
-            if reaction.count == 5:
+        if messageID in self.avatarVote and reaction.emoji == guild_emoji and messageID not in self.userVoted:
+            if reaction.count == voteThreshold:
+                # once votes reach the threshold, this message is ignored
+                self.userVoted.append(messageID)
                 if reaction.message.attachments:
                     async with self.bot.session.get(reaction.message.attachments[0].url) as avatar:
                         if avatar.status == 200:
@@ -173,6 +175,15 @@ class Fun(commands.Cog):
                 else:
                     print("invalid message content")
                     await reaction.message.channel.send("only include an attachment or link in message")
+        elif messageID in self.userVoted:
+            print("message has reached threshold")
+
+    @commands.Cog.listener()
+    async def on_reaction_remove(self, reaction: discord.Reaction, user: discord.User):
+        userID = user.id
+        if userID in self.userVoted:
+            # remove userID from userVoted if reaction amount is below threshold
+            pass
 
     @commands.command(aliases=["uselessfact"], description="get a random useless fact")
     async def fact(self, ctx: commands.Context):
@@ -251,8 +262,11 @@ class Fun(commands.Cog):
         async with ctx.channel.typing():
             async with self.bot.session.get(attachment_file) as attach:
                 image_data = await attach.read()
-                im = Image.open(io.BytesIO(image_data))
-                mono = im.convert('L')
+                im = Image.open(io.BytesIO(image_data)).convert('RGBA')
+                grayscale = im.convert('L')
+                _, _, _, a = im.split()
+                mono = Image.merge('LA', (grayscale, a))
+                
                 mono.save(buffer, "PNG")
                 buffer.seek(0)
                 await ctx.send(file=discord.File(buffer, "monochrome.png"))

@@ -201,39 +201,42 @@ class Scrapers(commands.Cog):
         embed = discord.Embed(title="Astronomy Picture of the Day", color=discord.Color.blurple())
 
         apod_url = "https://apod.nasa.gov/apod/"
-        async with self.bot.session.get(apod_url) as response:
-            soup = BeautifulSoup(await response.text(), "html.parser")
-            iframe = soup.find("iframe")
-            image = soup.find("img")
+        try:
+            async with self.bot.session.get(apod_url) as response:
+                soup = BeautifulSoup(await response.text(), "html.parser")
+                iframe = soup.find("iframe")
+                image = soup.find("img")
 
-            # scrape text
-            description = soup.select('p > b')
-            parent = description[0]
-            desc = parent.parent
-            description_split = desc.text.split(sep="Tomorrow's")
-            description_split_newline = description_split[0].replace('\n',' ')
-            
-            embed.add_field(name="Website:", value="https://apod.nasa.gov/apod/",
-                            inline=False)
-            embed.add_field(name="Description:",
-                            value=description_split_newline)
-            thumbnail = discord.File(fp="files/images/apod.png", filename="apod.png")
-            embed.set_thumbnail(url="attachment://apod.png")
+                # scrape text
+                description = soup.select('p > b')
+                parent = description[0]
+                desc = parent.parent
+                description_split = desc.text.split(sep="Tomorrow's")
+                description_split_newline = description_split[0].replace('\n',' ')
+                
+                embed.add_field(name="Website:", value="https://apod.nasa.gov/apod/",
+                                inline=False)
+                embed.add_field(name="Description:",
+                                value=description_split_newline)
+                thumbnail = discord.File(fp="files/images/apod.png", filename="apod.png")
+                embed.set_thumbnail(url="attachment://apod.png")
 
-            # check if they exist
-            if iframe is not None:
-                print("looking for youtube link")
-                await ctx.send(embed=embed, file=thumbnail)
-                await ctx.send(iframe['src'])
-                print("link sent")
-            elif image is not None:
-                print("looking for image src")
-                await ctx.send(embed=embed, file=thumbnail)
-                await ctx.send(apod_url + image['src'])
-                print("image sent")
-            else:
-                print("source is of a different media type")   
-            #TODO: normal reply w/ slash command
+                # check if they exist
+                if iframe is not None:
+                    print("looking for youtube link")
+                    await ctx.send(embed=embed, file=thumbnail)
+                    await ctx.send(iframe['src'])
+                    print("link sent")
+                elif image is not None:
+                    print("looking for image src")
+                    await ctx.send(embed=embed, file=thumbnail)
+                    await ctx.send(apod_url + image['src'])
+                    print("image sent")
+                else:
+                    print("source is of a different media type")   
+                
+        except Exception as e:
+            print(e)
             
 
 async def setup(bot):
