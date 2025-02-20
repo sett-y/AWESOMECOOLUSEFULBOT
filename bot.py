@@ -9,6 +9,7 @@ import logging
 import random
 import sqlite3
 from scripts.helpers.db_helpers import return_guild_emoji
+#from transformers import AutoTokenizer, AutoModelForCausalLM
 
 # Initialize the bot
 intents = discord.Intents.default()
@@ -22,6 +23,9 @@ bot.session = None
 bot.con = None
 bot.cur = None
 bot.defaultEmoji = "🚎"
+#bot.modelName = "EleutherAI/gpt-neo-1.3B"
+#bot.tokenizer = None
+#bot.model = None
 
 async def load_extensions():
     for filename in os.listdir('./cogs'):
@@ -72,6 +76,15 @@ async def on_message(message: discord.Message):
             embed.add_field(name="", value=message.jump_url, inline=False)
             embed.add_field(name="", value=message.content)
             await logChannel.send(embed=embed)
+
+    # zz troll orbit
+    if message.author.id == 155120411070300160:
+    # zz id: 155120411070300160
+        if message.reference is not None:
+            referencedMessage = await message.channel.fetch_message(message.reference.message_id)
+            # kevin hart
+            if referencedMessage.author.id == 275071431304282122:
+                await message.add_reaction("🛰")
 
     if message.content.startswith("bruh"):
         await message.channel.send("shut up")
@@ -140,12 +153,22 @@ async def on_command_error(ctx: commands.Context, error):
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.send("command on cooldown")
 
+@bot.before_invoke
+async def check_if_blocked(ctx: commands.Context):
+    blockList = []
+    if ctx.author.id in blockList:
+        print(f"user {ctx.author.name} is blocked")
+        raise commands.CommandInvokeError(f"user {ctx.author.name} is blocked")
+
 async def main():
     async with bot:
         await load_extensions()
         bot.con = sqlite3.connect("files/configs.db")
         bot.cur = bot.con.cursor()
         bot.session = aiohttp.ClientSession()
+
+        #bot.tokenizer = AutoTokenizer.from_pretrained(bot.modelName)
+        #bot.model = AutoModelForCausalLM(bot.modelName)
 
         if bot.session:
             print("aiohttp session started")
