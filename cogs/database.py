@@ -5,6 +5,7 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 import random
 import scripts.helpers.db_helpers as db_helpers
+from scripts.helpers.image_helpers import check_image
 
 class ConfessionModal(discord.ui.Modal):
     def __init__(self, *args, **kwargs) -> None:
@@ -110,7 +111,7 @@ class Database(commands.Cog):
         #print(wrappedMessage)
         return wrappedMessage.strip()
 
-    async def loadTextImgFromUrl(self, url, text, username):
+    async def loadTextImgFromUrl(self, url, text, username, background=None):
         buffer = io.BytesIO()
         font = ImageFont.truetype(font="files/fonts/0xProtoNerdFontMono-Regular.ttf", size=15)
 
@@ -119,6 +120,10 @@ class Database(commands.Cog):
             if avatar_data:
                 avatarImage = Image.open(io.BytesIO(avatar_data))
                 avatarImage.thumbnail((150,150))
+
+                # check for custom background
+                
+
                 baseImage = Image.new(mode="RGB", size=(400,400))
                 bioImage = ImageDraw.Draw(baseImage) # base image with text
                 base_width, base_height = baseImage.size
@@ -193,7 +198,6 @@ class Database(commands.Cog):
             self.bot.con.commit()
         await ctx.send("bio updated")
 
-    # TODO: user can upload a background image for their profile
     @commands.command(description="displays user's profile")
     async def profile(self, ctx: commands.Context, member: discord.Member = None):
         if member is None:
@@ -228,15 +232,27 @@ class Database(commands.Cog):
             SELECT bio FROM {profile_table}
             '''
             profile = self.bot.cur.execute(query).fetchall()
-            profileImage = await self.loadTextImgFromUrl(avatarUrl, profile[0][0], username)
+            profileBackground = await db_helpers.select_column(profile_table, "profile_background", self.bot.cur)
+            profileImage = await self.loadTextImgFromUrl(avatarUrl, profile[0][0], username, profileBackground)
             await ctx.send(file=discord.File(profileImage, "user_profile.png"))
         else:
             query = f'''
             SELECT bio FROM {profile_table}
             '''
             profile = self.bot.cur.execute(query).fetchall()
+            profileBackground = await db_helpers.select_column(profile_table, "profile_background")
             profileImage = await self.loadTextImgFromUrl(avatarUrl, profile[0][0], username)
             await ctx.send(file=discord.File(profileImage, "user_profile.png"))
+
+    # TODO: user can upload a background image for their profile
+    # caching system? for repeated queries
+    @commands.command(aliases=["background"], description="sets background image for user's profile")
+    async def profilebg(self, ctx: commands.Context, *, url=None):
+        profile_table = f"profile_{ctx.author.id}"
+        attachment_file = await check_image(ctx, url)
+        
+        await db_helpers.update_column(profile_table, "profile_background", attachment_file, 
+                                       self.bot.cur, self.bot.con)
 
     # set channel for confession
     @commands.command(description="sets channel for confessions")
@@ -275,9 +291,6 @@ class Database(commands.Cog):
         await ctx.send(embed=embed, view=view)
         await ctx.message.delete()
 
-    #@commands.command(aliases=["profilebg","profilebackground"], description="adds a custom profile background")
-    #async def background(self, ctx: commands.Context):
-    #    pass
 
 async def setup(bot):
     await bot.add_cog(Database(bot))
