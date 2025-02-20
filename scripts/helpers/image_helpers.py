@@ -41,20 +41,8 @@ async def imageCheck(ctx: commands.Context, session):
         imgUrl = "http" + splitContent[0]
         print("prompt has url")
     else:
-        print("direct attachment or url in message")
-        async for msg in ctx.channel.history(limit=40):
-            if msg.attachments:
-                if msg.attachments[0].filename.lower().endswith(('png','jpg','jpeg','webp','bmp')):
-                    print("found message in history with attachment")
-                    return msg.attachments[0].url
-                elif "http" in msg.content:
-                    print("found message in history with http")
-                    msgContent = msg.content
-                    split = msgContent.split("http")
-                    splitEnd = split[1].split(" ")
-                    return "http" + splitEnd[0]
-                else:
-                    print("invalid image")
+        print("no attachment")
+        return
 
     async with session.get(imgUrl) as attach:
         if attach.status != 200:
