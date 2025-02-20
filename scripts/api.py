@@ -1,14 +1,12 @@
 import google.generativeai as genai
 import scripts.config
 from discord.ext import commands
-from PIL import Image
 from scripts.helpers.image_helpers import imageCheck
-import io
 
 #TODO: open movie database
 #TODO: weather
-#TODO: owner only command that switches llm api
-#TODO: image analysis, maybe add to prompt instead of new command
+#TODO: owner only command that switches llm api/model
+#TODO: image generation w/ janus
 
 contextList = []
 contextDict = {} # dict that holds all histories
@@ -16,8 +14,7 @@ promptNum = 40
 initialExplanation = "You are the discord bot \"AWESOMECOOLUSEFULBOT\". \
 Below is the history of the recent user prompts along with your responses. While understanding \
 the context of the previous text, analyze and respond to \
-the user's latest prompt. You are also able to analyze images that users \
-send. Any message prefixed with a username and : are from users. \
+the user's latest prompt. Any message prefixed with a username and : are from users. \
 Your responses have no prefix and will be automatically formatted in the history. \
 Keep track of which user sent which message. Keep your messages under 2000 characters\
 unless the user states otherwise. Respond to the user, do not repeat any \
@@ -64,8 +61,6 @@ async def addServerContextHistory(userResponse: str, botResponse: str, ctx: comm
         print("history over max, popping")
         contextDict[guildID].pop(0)
         contextDict[guildID].append(history)
-
-
           
 async def serverPrompt(ctx: commands.Context, prompt, session) -> str:
     guildID = ctx.guild.id
@@ -98,6 +93,74 @@ async def serverPrompt(ctx: commands.Context, prompt, session) -> str:
     await addServerContextHistory(prompt, response.text, ctx)
     return response.text
 
+async def greentext(ctx, prompt, session):
+    guildID = ctx.guild.id
+    model_config = genai.GenerationConfig(temperature=1.2)
+
+    genai.configure(api_key=scripts.config.genai_token)
+    model = genai.GenerativeModel("gemini-2.0-flash-exp", generation_config=model_config)
+    print("generating greentext...")
+
+    if guildID not in contextDict:
+        contextDict[guildID] = []
+
+    gtPrompt = "generate a 4chan style greentext, either based on the following prompt, or, if there is \
+    no followup prompt, make one up. Do not add extra spacing between your posts. Do not state that you are \
+    making this prompt, pretend you are on 4chan posting that. Here is the prompt if it exists: "
+    userPrompt = f"{ctx.author.name}: {gtPrompt}{prompt}"
+
+    if len(contextDict[guildID]) > 0:
+        fullContext = '\n'.join(str(x) for x in contextDict[guildID])
+        fullContext = initialExplanation + fullContext + '\n' + userPrompt
+    else:
+        fullContext = initialExplanation + userPrompt
+
+    img = await imageCheck(ctx, session)
+    if not prompt:
+        prompt = ""
+    if img:
+        response = await model.generate_content_async(contents=[fullContext, img])
+    else:
+        response = await model.generate_content_async(fullContext)
+
+    await addServerContextHistory(gtPrompt + prompt, response.text, ctx)
+    return response.text
+
+async def aita(ctx, prompt, session):
+    guildID = ctx.guild.id
+    model_config = genai.GenerationConfig(temperature=1.2)
+
+    genai.configure(api_key=scripts.config.genai_token)
+    model = genai.GenerativeModel("gemini-2.0-flash-exp", generation_config=model_config)
+    print("generating aita...")
+
+    if guildID not in contextDict:
+        contextDict[guildID] = []
+        
+    gtPrompt = f"generate an \"Am I The Asshole\" style reddit post, either based on the \
+    following prompt, or, if there is no followup prompt, make one up. Do not state that \
+    you are making this prompt, pretend you are on reddit posting that. Format your post normally, \
+    try not to add very many returns between sentences. Here is the prompt if it exists: "
+    userPrompt = f"{ctx.author.name}: {gtPrompt}{prompt}"
+
+    if len(contextDict[guildID]) > 0:
+        fullContext = '\n'.join(str(x) for x in contextDict[guildID])
+        fullContext = initialExplanation + fullContext + '\n' + userPrompt
+    else:
+        fullContext = initialExplanation + userPrompt
+
+    img = await imageCheck(ctx, session)
+    if not prompt:
+        prompt = ""
+    
+    if img:
+        response = await model.generate_content_async(contents=[fullContext, img])
+    else:
+        response = await model.generate_content_async(fullContext)
+
+    await addServerContextHistory(gtPrompt + prompt, response.text, ctx)
+    return response.text
+
 # fix names
 async def genericPrompt(ctx: commands.Context, prompt, session) -> str:
     model_config = genai.GenerationConfig(temperature=1.8)
@@ -124,24 +187,6 @@ async def genericPrompt(ctx: commands.Context, prompt, session) -> str:
         response = await model.generate_content_async(fullContext)
 
     await addContextHistory(prompt, response.text, ctx)
-    return response.text
-
-async def greentext(ctx, prompt, session):
-    model_config = genai.GenerationConfig(temperature=1.2)
-    genai.configure(api_key=scripts.config.genai_token)
-    model = genai.GenerativeModel("gemini-2.0-flash-exp", generation_config=model_config)
-    print("generating greentext...")
-
-    img = await imageCheck(ctx, session)
-    if not prompt:
-        prompt = ""
-    gtPrompt = f"generate a 4chan style greentext, either based on the following prompt, or, if there is \
-    no followup prompt, make one up. Do not add extra spacing between your posts. Do not state that you are \
-    making this prompt, pretend you are on 4chan posting that. Here is the prompt if it exists: {prompt}"
-    if img:
-        response = await model.generate_content_async(contents=[gtPrompt, img])
-    else:
-        response = await model.generate_content_async(gtPrompt)
     return response.text
 
 async def singlePrompt(ctx, prompt, session):
@@ -244,6 +289,12 @@ async def serverHistory(ctx):
 async def clearServerHistory(ctx):
     guildID = ctx.guild.id
     del contextDict[guildID]
+
+async def returnContextDict():
+    if contextDict:
+        return contextDict
+    else:
+        print("no contextDict")
 
 async def summarize(history):
     #model_config = genai.GenerationConfig()
