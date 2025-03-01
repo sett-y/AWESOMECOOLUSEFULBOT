@@ -1,12 +1,11 @@
 from discord.ext import commands, tasks
 import discord
-import PIL
 import random
 import datetime
 import io
 import traceback
+import requests
 from bs4 import BeautifulSoup
-import scripts.catFacts as catFacts
 import scripts.scraper as scraper
 from scripts.robloxscrape import get_gamedata
 from scripts.YoutubeSearch import youtubeSearch
@@ -18,19 +17,21 @@ from scripts.helpers.db_helpers import return_guild_emoji
 class Scrapers(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        #self.bot.add_listener(self.on_raw_reaction_add, 'on_raw_reaction_add')
         self.reactionsNeeded = 1
-        # add dict with guild ids for keys that tracks the reaction threshhold
 
     @commands.command(aliases=["felinefact","cat"], description="displays a random cat fact")
     async def catfact(self, ctx: commands.Context):
-        try:
-            async with ctx.channel.typing():
-                catFact = await catFacts.get_fact()
-                await ctx.send(catFact)
-        except:
+        url = "https://catfact.ninja/fact"
+        payload={}
+        headers = {
+            'Accept': 'application/json'
+        }
+        response = requests.request("GET", url, headers=headers, data=payload)
+        if response.status_code == 200:
+            fact = response.json()
+            await ctx.send(fact["fact"])
+        else:
             print("error while scraping page")
-            await ctx.send("error while scraping page")
 
     @commands.command(description="displays info about dota match")
     async def display_match(self, ctx: commands.Context): # add url back to params

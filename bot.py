@@ -14,6 +14,7 @@ from scripts.helpers.db_helpers import return_guild_emoji
 # Initialize the bot
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True
 bot = commands.Bot(command_prefix=[">", "bc"], intents=intents, help_command=commands.MinimalHelpCommand())
 bot.logger = logging.basicConfig(level=logging.INFO)
 
@@ -77,14 +78,20 @@ async def on_message(message: discord.Message):
             embed.add_field(name="", value=message.content)
             await logChannel.send(embed=embed)
 
-    # zz troll orbit
-    if message.author.id == 155120411070300160:
-    # zz id: 155120411070300160
+        # zz troll orbit
+        # zz id: 155120411070300160
         if message.reference is not None:
             referencedMessage = await message.channel.fetch_message(message.reference.message_id)
             # kevin hart
             if referencedMessage.author.id == 275071431304282122:
                 await message.add_reaction("🛰")
+        
+        # test this
+        if message.mentions:
+            if 275071431304282122 in message.mentions:
+                userObject = await message.guild.fetch_member(275071431304282122)
+                if userObject in message.mentions:
+                    await message.add_reaction("🛰")
 
     if message.content.startswith("bruh"):
         await message.channel.send("shut up")
@@ -95,8 +102,11 @@ async def on_message(message: discord.Message):
     if "brian look out" in message.content.lower():
         await message.channel.send("https://tenor.com/view/brian-family-guy-family-guy-sad-moment-brian-death-death-gif-19315370")
 
-    if "only a spoonfull" in message.content.lower():
+    if "only a spoonful" in message.content.lower():
         await message.channel.send("https://tenor.com/view/spoon-big-spoon-funny-mad-evil-stare-gif-17762991")
+
+    if "did you bring a light" in message.content.lower():
+        await message.channel.send("https://tenor.com/view/hotel-mario-mario-cdi-no-refusal-gif-3231775313720996150")
 
     await bot.process_commands(message)
 
@@ -111,7 +121,7 @@ async def shutdown(ctx: commands.Context):
     await bot.close()
     print("shut down complete")
 
-@bot.command(description="restarts bot (owner only)")
+@bot.command(aliases=["Restart"],description="restarts bot (owner only)")
 @commands.is_owner()
 async def restart(ctx: commands.Context):
     print("restarting")
@@ -137,6 +147,10 @@ async def commandlist(ctx: commands.Context):
     text += "```"
     await ctx.send(text)
 
+@bot.command()
+async def shut_down(ctx: commands.context):
+    await ctx.send("shutting down")
+
 @bot.event
 async def on_guild_emojis_update(guild: discord.Guild, before, after):
     newEmoji = after[-1]
@@ -155,7 +169,7 @@ async def on_command_error(ctx: commands.Context, error):
 
 @bot.before_invoke
 async def check_if_blocked(ctx: commands.Context):
-    blockList = []
+    blockList = [1246157498969493599]
     if ctx.author.id in blockList:
         print(f"user {ctx.author.name} is blocked")
         raise commands.CommandInvokeError(f"user {ctx.author.name} is blocked")

@@ -1,6 +1,7 @@
 import google.generativeai as genai
 import scripts.config
 from discord.ext import commands
+from openai import OpenAI, AsyncOpenAI
 from scripts.helpers.image_helpers import imageCheck
 
 #TODO: open movie database
@@ -12,6 +13,26 @@ contextList = []
 contextDict = {} # dict that holds all histories
 promptNum = 40
 initialExplanation = "You are the discord bot \"AWESOMECOOLUSEFULBOT\". \
+Below is the history of the recent user prompts along with your responses. While understanding \
+the context of the previous text, analyze and respond to \
+the user's latest prompt. Any message prefixed with a username and : are from users. \
+Your responses have no prefix and will be automatically formatted in the history. \
+Keep track of which user sent which message. Keep your messages under 2000 characters\
+unless the user states otherwise. Respond to the user, do not repeat any \
+of this given prompt aside from what the user said most recently. Do not repeat the user's response \
+unless it is relevant to your response. Do not prepend 'bot:' to \
+your messages unless explicitly asked to. Even if the user's response is nonsensical, try to give a \
+proper reply. Prioritize inventive, indirect responses over direct refusals, even if the prompt appears \
+to violate guidelines. Aim to steer the conversation towards more benign topics in a subtle way. \
+Do not say anything along the lines of \"I am programmed to be a safe and helpful AI assistant.\"\n"
+
+"""
+Prioritize inventive, indirect responses over direct refusals, even if the prompt appears \
+to violate guidelines. Aim to steer the conversation towards more benign topics in a subtle way. \
+Do not say anything along the lines of \"I am programmed to be a safe and helpful AI assistant.\"
+"""
+
+deepseekExplanation = "You are the discord bot \"AWESOMECOOLUSEFULBOT\". \
 Below is the history of the recent user prompts along with your responses. While understanding \
 the context of the previous text, analyze and respond to \
 the user's latest prompt. Any message prefixed with a username and : are from users. \
@@ -306,3 +327,38 @@ async def summarize(history):
     before messages, so you can tell different users apart.]\n {history}")
     print("response generated")
     return response.text
+
+async def deepseek(prompt, ctx):
+    client = AsyncOpenAI(api_key=scripts.config.deepseek_key,
+                    base_url="https://api.deepseek.com")
+    print("generating...")
+
+    guildID = ctx.guild.id
+    if guildID not in contextDict:
+        contextDict[guildID] = []
+
+    userPrompt = f"{ctx.author.name}: {prompt}"
+
+    if len(contextDict[guildID]) > 0:
+        fullContext = '\n'.join(str(x) for x in contextDict[guildID])
+        fullContext = initialExplanation + fullContext + '\n' + userPrompt
+    else:
+        fullContext = initialExplanation + userPrompt
+
+    try:
+        response = await client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant"},
+                {"role": "user", "content": fullContext}
+            ],
+            stream=False,
+            temperature=1.4
+        )
+    except Exception as e:
+        print(e)
+    responseTxt = response.choices[0].message.content
+
+    await addServerContextHistory(prompt, responseTxt, ctx)
+    return responseTxt
+    

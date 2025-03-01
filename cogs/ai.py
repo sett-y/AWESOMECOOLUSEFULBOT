@@ -9,16 +9,20 @@ class AI(commands.Cog):
         self.bot = bot
         self.clearVote = []
         self.userClearVoted = []
+        # forget command
+        self.forgetVote = []
 
-    @commands.command(aliases=["serverprompt","p"], description="generate a response based on prompt given (history is per server)")
+    @commands.command(aliases=["serverprompt","p","P","Prompt"], description="generate a response based on prompt given (history is per server)")
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def prompt(self, ctx: commands.Context, *, message):
         try:
             async with ctx.channel.typing():
                 response = await api.serverPrompt(ctx, message, self.bot.session)
-        except ValueError:
+        except ValueError: # gemini blocking message
             await ctx.send("[message blocked retard]")
             print("message blocked")
+        except Exception as e:
+            print(f"error: {e}")
         if response:
             print("response generated")
         else:
@@ -94,7 +98,7 @@ class AI(commands.Cog):
         if len(response) > 2000:
             print("response over 2000 character limit, writing to file")
             # load response into txt file
-            with open("response.txt","w") as file:
+            with open("response.txt","w",encoding="utf-8") as file:
                 file.write(response)
             
             await ctx.send(file=discord.File("response.txt"))
@@ -146,7 +150,10 @@ class AI(commands.Cog):
 
     @commands.command(description="server context history")
     async def history(self, ctx: commands.Context):
-        history = await api.serverHistory(ctx)
+        try:
+            history = await api.serverHistory(ctx)
+        except Exception as e:
+            print(e)
         if not history:
             print("no prompt history available!")
             await ctx.send("no prompt history available!")
@@ -225,17 +232,31 @@ class AI(commands.Cog):
 
         await self.sendResponse(ctx, response)
 
+    def votesNeeded(self, servMembers: int):
+        if servMembers <= 30:
+            return 3
+        elif servMembers <= 100:
+            return 4
+        elif servMembers <= 200:
+            return 5
+        else:
+            return 8
+
     # votes to clear server context history
     @commands.command(aliases=["wipe", "memwipe", "mwipe", "clear"], description="calls a vote to clear server context history")
     async def voteclear(self, ctx: commands.Context):
         guildEmoji = "👆"
+        servMembers = ctx.guild.member_count
+        try:
+            reqVotes: int = self.votesNeeded(servMembers)
+        except Exception as e:
+            print(e)
 
         embed = discord.Embed(title="Clear Server History")
-        embed.add_field(name="", value="React to this message to vote on clearing the bot's server history.")
-
+        embed.add_field(name="", value=f"React to this message to vote on clearing the bot's server history.\
+                        Votes needed: {reqVotes}")
         voteMsg = await ctx.send(embed=embed)
         await voteMsg.add_reaction(guildEmoji)
-
         self.clearVote.append(voteMsg.id)
 
     # TODO: test multiple votes at once
@@ -243,7 +264,10 @@ class AI(commands.Cog):
     async def on_reaction_add(self, reaction: discord.Reaction, user: discord.User):
         messageID = reaction.message.id
         guildEmoji = "👆"
-        voteThreshold = 4
+        
+        servMembers = reaction.message.guild.member_count
+
+        voteThreshold: int = self.votesNeeded(servMembers)
 
         if messageID in self.clearVote and reaction.emoji == guildEmoji and messageID not in self.userClearVoted:
             if reaction.count == voteThreshold:
@@ -254,8 +278,32 @@ class AI(commands.Cog):
                 await api.clearServerHistory(reaction.message)
                 await reaction.message.channel.send("server history cleared")
 
-    # gemma 2 test cmd
+    # forget command
+    # clears last N messages from history
     
+    # deepseek test
+    @commands.command(aliases=["d"])
+    @commands.cooldown(1, 3, commands.BucketType.user)
+    async def deepseek(self, ctx: commands.Context, *, prompt):
+        try:
+            async with ctx.channel.typing():
+                response = await api.deepseek(prompt, ctx)
+        except ValueError: # deepseek blocking message
+            await ctx.send("[message blocked retard]")
+            print("message blocked")
+            return
+        except Exception as e:
+            print(f"error: {e}")
+            return
+        if response:
+            print("response generated")
+            try:
+                await self.sendResponse(ctx, response)
+            except Exception as e:
+                print(e)
+        else:
+            print("failed to generate response")
+
 
 async def setup(bot):
     await bot.add_cog(AI(bot))

@@ -6,12 +6,14 @@ import io
 import random
 import scripts.helpers.db_helpers as db_helpers
 from scripts.helpers.image_helpers import check_image
+import textwrap
 
 class ConfessionModal(discord.ui.Modal):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        self.add_item(discord.ui.TextInput(label="text"))
+        self.add_item(discord.ui.TextInput(label="message"))
+        self.add_item(discord.ui.TextInput(label="image attachment (optional)", required=False))
 
     async def on_submit(self, interaction: discord.Interaction):
         discolor = discord.Color
@@ -21,7 +23,20 @@ class ConfessionModal(discord.ui.Modal):
         
         msg = self.children[0].value
         msg = f"\"{msg}\""
+
         embed.add_field(name="", value=msg)
+        if self.children[1].value:
+            imageAttachment = self.children[1].value
+            
+            embed.set_image(url=imageAttachment)
+        else:
+            imageAttachment = ""
+            
+        # print the user that submitted
+        # normally i wouldnt want to track, but with image perms
+        # its probably necessary
+        print(f"{interaction.user.name}: {msg} {imageAttachment}")
+
         await interaction.response.defer()
         await interaction.channel.send(embed=embed, view=ButtonTest())
 
@@ -108,7 +123,6 @@ class Database(commands.Cog):
             else:
                 wrappedMessage += f"{word} "
                 lineLen = len(word) + 1
-        #print(wrappedMessage)
         return wrappedMessage.strip()
 
     async def loadTextImgFromUrl(self, url, text, username, background=None):
@@ -118,59 +132,88 @@ class Database(commands.Cog):
         async with self.bot.session.get(url) as img:
             avatar_data = await img.read()
             if avatar_data:
-                avatarImage = Image.open(io.BytesIO(avatar_data))
-                avatarImage.thumbnail((150,150))
+                try:
+                    avatarImage = Image.open(io.BytesIO(avatar_data))
+                    avatarImage.thumbnail((150, 150))
+                except Exception as e:
+                    print(f"Failed to load avatar image: {e}")
+                    return
 
-                # check for custom background
-                
+                baseImage = Image.new(mode="RGB", size=(400, 400), color="black")  # Default black background
 
-                baseImage = Image.new(mode="RGB", size=(400,400))
-                bioImage = ImageDraw.Draw(baseImage) # base image with text
+                if background:
+                    print(f"Custom background URL: {background}")
+                    try:
+                        async with self.bot.session.get(background) as bg:
+                            bg_data = await bg.read()
+                            if bg_data:
+                                try:  
+                                    bg_image = Image.open(io.BytesIO(bg_data))
+                                    print("Background image loaded successfully.")
+
+                                    bg_width, bg_height = bg_image.size
+                                    target_width, target_height = 400, 400
+
+                                    scale = max(target_width / bg_width, target_height / bg_height)
+                                    new_width = int(bg_width * scale)
+                                    new_height = int(bg_height * scale)
+
+                                    bg_image = bg_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+                                    left = (new_width - target_width) / 2
+                                    top = (new_height - target_height) / 2
+                                    right = (new_width + target_width) / 2
+                                    bottom = (new_height + target_height) / 2
+
+                                    bg_image = bg_image.crop((left, top, right, bottom))
+                                    baseImage = bg_image
+                                except Exception as e:
+                                    print(f"Failed to process background image: {e}")
+                                    # Fallback
+                                    baseImage = Image.new(mode="RGB", size=(400, 400), color="black")
+                    except Exception as e:
+                        print(f"Failed to fetch background image: {e}")
+                        # Fallback
+                        baseImage = Image.new(mode="RGB", size=(400, 400), color="black")
+
+                bioImage = ImageDraw.Draw(baseImage)
                 base_width, base_height = baseImage.size
 
-                wrapped_text = await self.textWrap(message=text, maxLen=20)
-                
-                # username text
-                usernameX = (baseImage.width // 2) - (bioImage.textlength(username, font=font) / 2)
-                usernameY = (baseImage.height / 5.5) + (avatarImage.height)
-                bioImage.text((usernameX,usernameY), text=username, font=font)
+                wrapped_text = textwrap.fill(text, width=35)
 
-                # bio text
-                bbox = bioImage.multiline_textbbox((0,0), wrapped_text, font=font)
-                #bioWidth = bbox[2] - bbox[0]
-                #bioHeight = bbox[3] - bbox[1]
-
-                bioX = (baseImage.width // 3) - 10
-                bioY = usernameY + 40
-
-                # TODO: bio text box fixed size
                 bioRec = [
-                    (30, baseImage.height - 180),
-                    (baseImage.width - 30, baseImage.height - 20)
+                    (30, baseImage.height - 180), # Top-left
+                    (baseImage.width - 30, baseImage.height - 20) # Bottom-right
                 ]
-                #bioRec = [
-                #    (bioX - 4, bioY - 2),
-                #    (bioX + bioWidth + 4, (bioY + bioHeight + 10))
-                #]
-                
                 bioImage.rectangle(bioRec, outline="white", fill="black")
-                bioImage.multiline_text((bioX, bioY), text=wrapped_text, font=font, fill="white")
 
-                # avatar placement
+                bioX = bioRec[0][0] + 5
+                bioY = bioRec[0][1] + 5
+                try:
+                    bioImage.multiline_text((bioX, bioY), text=wrapped_text, font=font, fill="white")
+                except Exception as e:
+                    print(f"Failed to draw text: {e}")
+
+                # username
+                #usernameX = (baseImage.width // 2) - (bioImage.textlength(username, font=font) / 2)
+                #usernameY = (baseImage.height / 5.5) + (avatarImage.height)
+                #bioImage.text((usernameX, usernameY), text=username, font=font)
+
+                # avatar
                 paste_width, paste_height = avatarImage.size
-                x = (base_width - paste_width) // 2
+                x = (base_width - paste_width) / 2
                 y = (base_height - paste_height) / 4.5
-                baseImage.paste(avatarImage, (int(x),int(y)))
+                baseImage.paste(avatarImage, (int(x), int(y)))
 
                 baseImage.save(buffer, 'PNG')
                 buffer.seek(0)
                 return buffer
             else:
-                print("url is invalid")
+                print("URL is invalid")
 
     @commands.command(description="updates user's profile bio")
     async def bio(self, ctx: commands.Context, *, bio):
-        if len(bio) > 3000:
+        if len(bio) > 2000:
             await ctx.send("bio too long")
             return
 
@@ -214,6 +257,8 @@ class Database(commands.Cog):
         WHERE type='table' AND name='{profile_table}'
         '''
         profileTest = self.bot.cur.execute(profileQuery).fetchall()
+        print(profileTest)
+        defaultBG = "https://upload.wikimedia.org/wikipedia/en/7/73/Trollface.png"
 
         if not profileTest:
             query = f'''
@@ -223,7 +268,7 @@ class Database(commands.Cog):
 
             query = f'''
             INSERT INTO {profile_table} (bio)
-            VALUES ('gay ass stupid ass')
+            VALUES ('gay ass stupid ass (>bio to change bio, >profilebg to change background)')
             '''
             self.bot.cur.execute(query)
             self.bot.con.commit()
@@ -232,27 +277,47 @@ class Database(commands.Cog):
             SELECT bio FROM {profile_table}
             '''
             profile = self.bot.cur.execute(query).fetchall()
-            profileBackground = await db_helpers.select_column(profile_table, "profile_background", self.bot.cur)
-            profileImage = await self.loadTextImgFromUrl(avatarUrl, profile[0][0], username, profileBackground)
-            await ctx.send(file=discord.File(profileImage, "user_profile.png"))
+
+            # check if background has been set
+            async with ctx.typing():
+                bgExist = await db_helpers.check_column(profile_table, "profile_background", self.bot.cur)
+                if bgExist[0][0] != 0:
+                    profileBackground = await db_helpers.select_column(profile_table, "profile_background", self.bot.cur)
+                else:
+                    print("default bg")
+                    profileBackground = defaultBG
+
+                profileImage = await self.loadTextImgFromUrl(avatarUrl, profile[0][0], username, profileBackground)
+                await ctx.send(file=discord.File(profileImage, "user_profile.png"))
         else:
             query = f'''
             SELECT bio FROM {profile_table}
             '''
             profile = self.bot.cur.execute(query).fetchall()
-            profileBackground = await db_helpers.select_column(profile_table, "profile_background")
-            profileImage = await self.loadTextImgFromUrl(avatarUrl, profile[0][0], username)
-            await ctx.send(file=discord.File(profileImage, "user_profile.png"))
 
-    # TODO: user can upload a background image for their profile
-    # caching system? for repeated queries
+            async with ctx.typing():
+                bgExist = await db_helpers.check_column(profile_table, "profile_background", self.bot.cur)
+                if bgExist[0][0] != 0:
+                    profileBackground = await db_helpers.select_column(profile_table, "profile_background", self.bot.cur)
+                else:
+                    print("default bg")
+                    profileBackground = defaultBG
+
+                profileImage = await self.loadTextImgFromUrl(avatarUrl, profile[0][0], username, profileBackground)
+                await ctx.send(file=discord.File(profileImage, "user_profile.png"))
+
     @commands.command(aliases=["background"], description="sets background image for user's profile")
     async def profilebg(self, ctx: commands.Context, *, url=None):
         profile_table = f"profile_{ctx.author.id}"
         attachment_file = await check_image(ctx, url)
         
-        await db_helpers.update_column(profile_table, "profile_background", attachment_file, 
-                                       self.bot.cur, self.bot.con)
+        try:
+            await db_helpers.update_column(profile_table, "profile_background", attachment_file, 
+                                            self.bot.cur, self.bot.con)
+        except Exception as e:
+            print(e)
+
+        await ctx.send("background added")
 
     # set channel for confession
     @commands.command(description="sets channel for confessions")
