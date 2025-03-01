@@ -6,10 +6,9 @@ import scripts.ytmp3 as ytmp3
 import asyncio
 import random
 from scripts.SongOfTheDay import SpotifySong
-from scripts.helpers.vid_helpers import getVidUrl, getTempFile
-from moviepy import vfx, VideoFileClip
+from scripts.helpers.vid_helpers import getVidUrl, getTempFile, getEditedVideoPath
+from moviepy import VideoFileClip
 import tempfile
-import urllib.parse
 #import wavelink
 
 #TODO: for files that go over upload limit, upload to temp file hosting service and send link
@@ -103,47 +102,35 @@ class Music(commands.Cog):
         else:
             print("input is neither playlist nor album")
 
-
-    @commands.command(description="usage: >edit speed: <float> size: <float> url: <string>")
+    # filetype checks
+    @commands.command(description="usage: >speed speed: <float> size: <float> url: <string>")
     @commands.cooldown(1, 7, commands.BucketType.user)
-    async def edit(self, ctx: commands.Context, *, flags: SpeedFlags):
+    async def speed(self, ctx: commands.Context, speed: float):
         # Default speed validation
-        if flags.speed < 0.1:
-            print(f"value of speed ({flags.speed}) too low, setting to 0.1")
-            flags.speed = 0.1
-        elif flags.speed > 40:
-            print(f"value of speed ({flags.speed}) is too high, setting it to 40")
-            flags.speed = 40
-        if flags.size > 1:
-            flags.size = 1     
+        if speed < 0.1:
+            print(f"value of speed ({speed}) too low, setting to 0.1")
+            speed = 0.1
+        elif speed > 40:
+            print(f"value of speed ({speed}) is too high, setting it to 40")
+            speed = 40    
         
         async with ctx.typing():
             # Retrieve video URL
-            vidUrl, vidName = await getVidUrl(ctx, flags.url)
+            vidUrl, vidName = await getVidUrl(ctx)
             
             # download the video into a temporary file
-            #tmp_video_path = await getTempFile(self.bot.session, vidUrl)
-
-            async with self.bot.session.get(vidUrl) as attach:
-                if attach.status != 200:
-                    print("problem downloading")
-                    return
-
-                try:
-                    with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp_video_file:
-                        tmp_video_file.write(await attach.read())
-                        tmp_video_path = tmp_video_file.name
-                        print(f"Temporary video file created: {tmp_video_path}")
-                except Exception as e:
-                    print(f"Error creating temporary video file: {e}")
-                    return
+            tmp_video_path = await getTempFile(self.bot.session, vidUrl)
+            if not tmp_video_path:
+                await ctx.send("file over max size")
+                print("exiting cmd")
+                return
             
             # process video
             try:
                 with VideoFileClip(tmp_video_path) as clip:
-                    with clip.with_speed_scaled(float(flags.speed)) as editClip:
+                    with clip.with_speed_scaled(float(speed)) as editClip:
                         #editClip = editClip.fx(vfx.FadeIn)
-                        editClip = editClip.resized(flags.size)
+                        #editClip = editClip.resized(flags.size)
                         
                         # delete is false because otherwise the temp file would be deleted before
                         # it could be accessed
@@ -165,18 +152,43 @@ class Music(commands.Cog):
             os.remove(tmp_video_path)
             os.remove(tmp_output_path)
 
+    @commands.command(aliases=["res"])
+    @commands.cooldown(1, 7, commands.BucketType.user)
+    async def resolution(self, ctx: commands.Context, res: float):
+        if res > 1:
+            res = 1.0
 
-    #@commands.command()
-    #async def resolution():
-    #    pass
+        async with ctx.typing():        
+            vidUrl, vidName = await getVidUrl(ctx)
+            tmp_video_path = await getTempFile(self.bot.session, vidUrl)
+            if not tmp_output_path:
+                await ctx.send("file over max size")
+                print("exiting resolution cmd")
+                return
+
+            try:
+                with VideoFileClip(tmp_video_path) as clip:
+                    with clip.resized(res) as editClip:
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp_output_file:
+                            tmp_output_path = tmp_output_file.name
+                            editClip.write_videofile(tmp_output_path, audio_codec="aac")
+                            print(f"Output video written to temporary file: {tmp_output_path}")
+            except Exception as e:
+                print(f"Error processing video: {e}")
+                os.remove(tmp_video_path)
+                os.remove(tmp_output_path)
+                return
+
+            await ctx.send(file=discord.File(tmp_output_path, vidName))
+
+        os.remove(tmp_video_path)
+        os.remove(tmp_output_path)
 
 
     #@commands.command()
     #async def ytp(self, ctx: commands.Context)
     #    pass
     
-
-
 
     #@commands.command()
     #async def vcsong(ctx, url):
