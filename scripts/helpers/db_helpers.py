@@ -38,6 +38,7 @@ async def check_column(table_name, column_name, cur):
     WHERE name='{column_name}'
     '''
     col = cur.execute(query).fetchall()
+    print("check_column results:")
     print(col)
     print(col[0][0])
     return col
@@ -81,7 +82,6 @@ async def update_column(table_name, column_name, column_val, cur, con):
         cur.execute(colQuery)
     
     # update
-    print("updating column")
     query = f'''
     UPDATE {table_name}
     SET {column_name} = '{column_val}'

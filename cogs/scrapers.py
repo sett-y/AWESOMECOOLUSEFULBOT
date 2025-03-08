@@ -5,6 +5,7 @@ import datetime
 import io
 import traceback
 import requests
+import json
 from bs4 import BeautifulSoup
 import scripts.scraper as scraper
 from scripts.robloxscrape import get_gamedata
@@ -12,6 +13,7 @@ from scripts.YoutubeSearch import youtubeSearch
 from scripts.SongOfTheDay import SpotifySong
 from scripts.TwitterBot import postMessage, getLastPost
 from scripts.helpers.db_helpers import return_guild_emoji
+from scripts.config import stratz_token
 
 
 class Scrapers(commands.Cog):
@@ -33,12 +35,68 @@ class Scrapers(commands.Cog):
         else:
             print("error while scraping page")
 
-    @commands.command(description="displays info about dota match")
-    async def display_match(self, ctx: commands.Context): # add url back to params
-        #await ctx.send("fetching match...")
-        #html = await scraper.call_scraper("get_match_info", url)
+    @commands.command()
+    async def dota(self, ctx: commands.Context, id):
+        stratzUrl = "https://api.stratz.com/graphql"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {stratz_token}",
+            "User-Agent": "STRATZ_API",
+            }
+        query = f"""{{
+        match(id: {id}) {{
+            id
+            gameMode
+            startDateTime
+            averageImp
+            players {{
+                steamAccount {{
+                    name
+                }}
+                hero {{
+                    displayName
+                }}
+                kills
+                deaths
+                assists
+                numLastHits
+                numDenies
+                goldPerMinute
+            }}
+        }}
+        }}"""
+        payload = json.dumps({"query": query})
+        
+        async with self.bot.session.post(stratzUrl, data=payload, headers=headers) as response:
+            if response.status == 200:
+                try:
+                    match_data = await response.json()
+                except json.JSONDecodeError as je:
+                    print(je)
+                except Exception as e:
+                    print(e)
+                print(match_data)
+                players: dict = match_data['data']['match']
+                player_names = ""
+                
+                # separate match data
+                for key, val in players.items():
+                    if key == "name":
+                        player_names = player_names + val + '\n'
+                print(player_names)
+                await ctx.send(players)
+            else:
+                print(response.status)
+                print(response)
+                print(await response.text())
 
-        thumbnail = discord.File("files/images/dotabuff.png", filename="dotabuff.png")
+    @commands.command(description="displays info about dota match")
+    async def display_match(self, ctx: commands.Context, url=None):
+        await ctx.send("fetching match...")
+        html = await scraper.call_scraper("get_match_info", url)
+
+
+        """thumbnail = discord.File("files/images/dotabuff.png", filename="dotabuff.png")
         embed = discord.Embed(title="bruh")
         embed.add_field(name="test 1", value="tasdfdfjlasdjf")
         embed.add_field(name="test 2", value="aldfjaldskjfd", inline=False)
@@ -48,16 +106,16 @@ class Scrapers(commands.Cog):
         embed.set_thumbnail(url="attachment://dotabuff.png")
         embed.set_author(name=f"requested by {ctx.author.name}")
 
-        await ctx.send(file=thumbnail, embed=embed)
+        await ctx.send(file=thumbnail, embed=embed)"""
 
-        """await ctx.send(html[0])
-        for h in html[1]:
-            await ctx.send(h)
-            asyncio.sleep(0.2)
-        await ctx.send(html[2])
-        for h in html[3]:
-            await ctx.send(h)
-            asyncio.sleep(0.2)"""
+
+        await ctx.send(html)
+        #for h in html[1]:
+        #    await ctx.send(h)
+        #    asyncio.sleep(0.2)
+        #for h in html[3]:
+        #    await ctx.send(h)
+        #    asyncio.sleep(0.2)
 
         #PIL code here
         
@@ -106,7 +164,7 @@ class Scrapers(commands.Cog):
         await ctx.send(embed=embed)
 
     #TODO: cmd to display latest post
-    @commands.command(aliases=["bsky","bluesky","latestpost"], description="fetches last bsky post")
+    @commands.command(aliases=["bsky","bluesky","latestpost","recent"], description="fetches last bsky post")
     async def latest(self, ctx: commands.Context):
         post = await getLastPost()
         await ctx.send(post)
@@ -214,11 +272,27 @@ class Scrapers(commands.Cog):
                 desc = parent.parent
                 description_split = desc.text.split(sep="Tomorrow's")
                 description_split_newline = description_split[0].replace('\n',' ')
-                
+
                 embed.add_field(name="Website:", value="https://apod.nasa.gov/apod/",
                                 inline=False)
-                embed.add_field(name="Description:",
-                                value=description_split_newline)
+                
+                if len(description_split_newline) > 1024:
+                    print(f"string longer than 1024 characters ({len(description_split_newline)})")
+                    # number of embed fields to add
+                    textChunks = (len(description_split_newline) // 1024) + 1
+                    for i in range(textChunks):
+                        start = i * 1024
+                        end = start + 1024
+                        # for when end exceeds str length
+                        if end > len(description_split_newline):
+                            end = len(description_split_newline)
+
+                        currentChunk = description_split_newline[start:end]
+                        embed.add_field(name="", value=currentChunk[:end], inline=False)
+                else:
+                    embed.add_field(name="",
+                                    value=description_split_newline)
+                    
                 thumbnail = discord.File(fp="files/images/apod.png", filename="apod.png")
                 embed.set_thumbnail(url="attachment://apod.png")
 
