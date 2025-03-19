@@ -1,5 +1,6 @@
 from discord.ext import commands
 import discord
+from bot import BotType
 
 #TODO: replace help command with embed menu that has multiple pages
 
@@ -11,7 +12,7 @@ class HelpExtend(commands.MinimalHelpCommand):
             await destination.send(embed=embed)
 
 class Help(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: BotType):
         self.bot = bot
         self.bot.help_command = HelpExtend()
 

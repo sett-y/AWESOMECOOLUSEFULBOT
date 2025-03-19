@@ -1,9 +1,10 @@
 import spotipy
 import traceback
+from typing import Tuple
 from spotipy.oauth2 import SpotifyClientCredentials
 from scripts.config import spotify_client_id, spotify_client_secret
 
-async def SpotifySong(url):
+async def SpotifySong(url) -> Tuple:
     auth_manager = SpotifyClientCredentials(client_id=spotify_client_id,
                                             client_secret=spotify_client_secret)
     sp = spotipy.Spotify(auth_manager=auth_manager)

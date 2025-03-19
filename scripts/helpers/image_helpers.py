@@ -1,9 +1,10 @@
 from PIL import Image
 from discord.ext import commands
+from typing import Optional
 import io
 
 
-async def check_image(ctx: commands.Context, url=None):
+async def check_image(ctx: commands.Context, url=None) -> Optional[str]:
     if ctx.message.attachments:
         if ctx.message.attachments[0].filename.lower().endswith(('png','jpg','jpeg','webp','bmp','gif')):
             attachment_file = ctx.message.attachments[0].url
@@ -16,18 +17,22 @@ async def check_image(ctx: commands.Context, url=None):
         return attachment_file
     else:
         print("no direct attachment or url in message")
-        async for msg in ctx.channel.history(limit=40):
-            # check if attachments exist, then check if attachment is img
-            if msg.attachments:
-                if msg.attachments[0].filename.lower().endswith(('png','jpg','jpeg','webp','bmp','gif')):
-                    return msg.attachments[0].url
-            elif "http" in msg.content:
-                msgContent = msg.content
-                split = msgContent.split("http")
-                splitEnd = split[1].split(" ")
-                return "http" + splitEnd[0]
-            else:
-                print("invalid image")
+        try:
+            async for msg in ctx.channel.history(limit=40):
+                # check if attachments exist, then check if attachment is img
+                if msg.attachments:
+                    if msg.attachments[0].filename.lower().endswith(('png','jpg','jpeg','webp','bmp','gif')):
+                        return msg.attachments[0].url
+                elif "http" in msg.content:
+                    msgContent = msg.content
+                    split = msgContent.split("http")
+                    splitEnd = split[1].split(" ")
+                    return "http" + splitEnd[0]
+                else:
+                    print("invalid image")
+                    # NO RETURN HERE
+        except Exception as e:
+            print(e)
 
 
 async def imageCheck(ctx: commands.Context, session):

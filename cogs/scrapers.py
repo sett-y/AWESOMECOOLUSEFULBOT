@@ -7,6 +7,7 @@ import traceback
 import requests
 import json
 from bs4 import BeautifulSoup
+from bot import BotType
 import scripts.scraper as scraper
 from scripts.robloxscrape import get_gamedata
 from scripts.YoutubeSearch import youtubeSearch
@@ -17,9 +18,9 @@ from scripts.config import stratz_token
 
 
 class Scrapers(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: BotType):
         self.bot = bot
-        self.reactionsNeeded = 1
+        self.reactionsNeeded = 2
 
     @commands.command(aliases=["felinefact","cat"], description="displays a random cat fact")
     async def catfact(self, ctx: commands.Context):
@@ -66,7 +67,8 @@ class Scrapers(commands.Cog):
         }}
         }}"""
         payload = json.dumps({"query": query})
-        
+
+        assert self.bot.session, "self.bot.session is not initialized"
         async with self.bot.session.post(stratzUrl, data=payload, headers=headers) as response:
             if response.status == 200:
                 try:
@@ -172,15 +174,23 @@ class Scrapers(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         # maybe have list of messages to ignore once react threshold is reached
-
         channel = self.bot.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
         reactions = message.reactions
-
         react_emoji = await return_guild_emoji(payload.guild_id, self.bot.cur, "🚎")
 
         #if message.author.id == self.bot.user.id:
         #    return
+        if payload.member.id == 367369804828639234: #guigui
+            print(f"user {payload.member.name} is blocked")
+            return
+        
+        # check for special user
+        if payload.member.id in self.bot.specialUsers:
+            for reaction in reactions:
+                # have to str type cast apparently
+                if str(reaction.emoji) == react_emoji:
+                    self.reactionsNeeded = 1
 
         if str(payload.emoji) == react_emoji:
             for reaction in reactions:
@@ -238,7 +248,7 @@ class Scrapers(commands.Cog):
 
         ranSongChoice = random.choice(songItems)
         choice = ranSongChoice['track']['external_urls']['spotify']
-
+    
         await channel.send(choice)
 
     @dailysong.before_loop
@@ -281,14 +291,14 @@ class Scrapers(commands.Cog):
                     # number of embed fields to add
                     textChunks = (len(description_split_newline) // 1024) + 1
                     for i in range(textChunks):
-                        start = i * 1024
+                        start = i * 1024 # starts at 0 and scales accordingly
                         end = start + 1024
                         # for when end exceeds str length
                         if end > len(description_split_newline):
                             end = len(description_split_newline)
 
                         currentChunk = description_split_newline[start:end]
-                        embed.add_field(name="", value=currentChunk[:end], inline=False)
+                        embed.add_field(name="", value=currentChunk, inline=False)
                 else:
                     embed.add_field(name="",
                                     value=description_split_newline)
