@@ -3,10 +3,11 @@ import discord
 #from scripts.googlescrape import get_search
 from scripts.helpers.db_helpers import return_guild_emoji, check_column
 import random
+from bot import BotType
 
 class Util(commands.Cog):
-    def __init__(self, bot):
-        self.bot: discord.Bot = bot
+    def __init__(self, bot: BotType):
+        self.bot = bot
 
     @commands.command()
     @commands.is_owner()
@@ -157,7 +158,7 @@ class Util(commands.Cog):
         print(result)
         #await ctx.send(embed=embed)
 
-    @commands.command(description="checks the emoji used for guild votes and bluesky posts")
+    @commands.command(aliases=["checkemoji"],description="checks the emoji used for guild votes and bluesky posts")
     async def check_guild_emoji(self, ctx: commands.Context):
         await ctx.send(await return_guild_emoji(ctx.guild.id, self.bot.cur, self.bot.defaultEmoji))
 
@@ -175,6 +176,10 @@ class Util(commands.Cog):
         else:
             emojiStr += "tuah"
             await ctx.send(emojiStr)
+
+    @commands.command()
+    async def specialemoji(self, ctx: commands.Context):
+        await ctx.send(self.bot.specialReact)
 
 
 async def setup(bot):

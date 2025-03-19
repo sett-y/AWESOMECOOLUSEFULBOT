@@ -4,16 +4,19 @@ import urllib.parse
 import os
 import tempfile
 from moviepy import VideoFileClip
+from typing import Tuple, Optional
 
 
 #TODO: helper functions that check video url, parse, then save and return temp vid path
 
-async def getVidUrl(ctx: commands.Context, url=None):
+async def getVidUrl(ctx: commands.Context, url=None) -> Tuple[Optional[str], Optional[str]]:
     if ctx.message.attachments:
         if ctx.message.attachments[0].filename.lower().endswith(('mp4', 'webm', 'mov')):
             vidUrl = ctx.message.attachments[0].url
             vidName = ctx.message.attachments[0].filename
             print(vidName)
+        else:
+            return (None, None)
     elif "http" in ctx.message.content:
         content = ctx.message.content
         httpContent = content.split("http")
@@ -32,10 +35,10 @@ async def getVidUrl(ctx: commands.Context, url=None):
             print(f"success: {vidUrl}")
         else:
             print("epic fail")
-            return
+            return (None, None)
     else:
         print("invalid video")
-        return
+        return (None, None)
     
     return vidUrl, vidName
 

@@ -2,10 +2,12 @@ from discord.ext import commands
 import discord
 import scripts.api as api
 import os
+from typing import Optional
+from bot import BotType
 #from scripts.helpers.image_helpers import check_image
 
 class AI(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: BotType):
         self.bot = bot
         self.clearVote = []
         self.userClearVoted = []
@@ -14,7 +16,8 @@ class AI(commands.Cog):
 
     @commands.command(aliases=["serverprompt","p","P","Prompt"], description="generate a response based on prompt given (history is per server)")
     @commands.cooldown(1, 3, commands.BucketType.user)
-    async def prompt(self, ctx: commands.Context, *, message):
+    async def prompt(self, ctx: commands.Context, *, message) -> None:
+        response: Optional[str] = None
         try:
             async with ctx.channel.typing():
                 response = await api.serverPrompt(ctx, message, self.bot.session)
@@ -23,16 +26,35 @@ class AI(commands.Cog):
             print("message blocked")
         except Exception as e:
             print(f"error: {e}")
+        
         if response:
             print("response generated")
+            await self.sendResponse(ctx, response)
         else:
             print("failed to generate response")
-            return
+
+    @commands.command(aliases=["ep","Ep","EP"], description="generate a response based on prompt given (history is per server)")
+    @commands.cooldown(1, 3, commands.BucketType.user)
+    async def evilprompt(self, ctx: commands.Context, *, message) -> None:
+        response: Optional[str] = None
+        try:
+            async with ctx.channel.typing():
+                response = await api.evilServerPrompt(ctx, message, self.bot.session)
+        except ValueError: # gemini blocking message
+            await ctx.send("[message blocked retard]")
+            print("message blocked")
+        except Exception as e:
+            print(f"error: {e}")
         
-        await self.sendResponse(ctx, response)
+        if response:
+            print("response generated")
+            await self.sendResponse(ctx, response)
+        else:
+            print("failed to generate response")
         
     @commands.command(aliases=["gemini","ai"], description="generate a response based on prompt given")
-    async def globalprompt(self, ctx: commands.Context, *, message):
+    async def globalprompt(self, ctx: commands.Context, *, message) -> None:
+        response: Optional[str] = None
         try:
             async with ctx.channel.typing():
                 response = await api.genericPrompt(ctx, message, self.bot.session)
@@ -48,7 +70,8 @@ class AI(commands.Cog):
         await self.sendResponse(ctx, response)
 
     @commands.command(aliases=["greentext","gt"])
-    async def kekmode(self, ctx: commands.Context, *, kek=None):
+    async def kekmode(self, ctx: commands.Context, *, kek=None) -> None:
+        response: Optional[str] = None
         try:
             async with ctx.channel.typing():
                 response = await api.greentext(ctx, kek, self.bot.session)
@@ -57,13 +80,13 @@ class AI(commands.Cog):
             print("message blocked")
         if response:
             print("response generated")
+            await self.sendResponse(ctx, response)
         else:
-            return
-        
-        await self.sendResponse(ctx, response)
+            print("failed to generate response")
 
     @commands.command(aliases=["asshole","amitheasshole"])
-    async def aita(self, ctx: commands.Context, *, prompt=None):
+    async def aita(self, ctx: commands.Context, *, prompt=None) -> None:
+        response: Optional[str] = None
         try:
             async with ctx.channel.typing():
                 response = await api.aita(ctx, prompt, self.bot.session)
@@ -72,13 +95,13 @@ class AI(commands.Cog):
             print("message blocked")
         if response:
             print("response generated")
+            await self.sendResponse(ctx, response)
         else:
-            return
-        
-        await self.sendResponse(ctx, response)
+            print("failed to generate response")
 
     @commands.command(aliases=["ap"], description="generate an EVIL response based on prompt given")
     async def antiprompt(self, ctx: commands.Context, *, arg):
+        response: Optional[str] = None
         await ctx.send("generating EVIL response...")
         try:
             async with ctx.channel.typing():
@@ -88,10 +111,9 @@ class AI(commands.Cog):
             print("message blocked")
         if response:
             print("response generated")
+            await self.sendResponse(ctx, response)
         else:
-            return
-        
-        await self.sendResponse(ctx, response)
+            print("failed to generate response")
     
     # checks if response is over 2k chars and loads / sends txt file, otherwise sends normally
     async def sendResponse(self, ctx: commands.Context, response):
@@ -115,6 +137,7 @@ class AI(commands.Cog):
         except ValueError:
             await ctx.send("[message blocked retard]")
             print("message blocked")
+            return
         print("generated")
         await ctx.send(f"🥠 {fortune} 🥠")
 
@@ -138,7 +161,10 @@ class AI(commands.Cog):
                 file.write(history)
             
             await ctx.send(file=discord.File("history.txt"))
-            os.remove("history.txt")
+            try:
+                os.remove("history.txt")
+            except Exception as e:
+                print(e)
         else:
             await ctx.send(history)
 
@@ -163,7 +189,10 @@ class AI(commands.Cog):
                 file.write(history)
 
             await ctx.send(file=discord.File("history.txt"))
-            os.remove(f"history.txt")
+            try:
+                os.remove(f"history.txt")
+            except Exception as e:
+                print(e)
         else:
             await ctx.send(history)
 
@@ -229,10 +258,11 @@ class AI(commands.Cog):
         except ValueError:
             await ctx.send("[message blocked retard]")
             print("message blocked")
+            return
 
         await self.sendResponse(ctx, response)
 
-    def votesNeeded(self, servMembers: int):
+    def votesNeeded(self, servMembers: int) -> int:
         if servMembers <= 30:
             return 3
         elif servMembers <= 100:
@@ -246,11 +276,13 @@ class AI(commands.Cog):
     @commands.command(aliases=["wipe", "memwipe", "mwipe", "clear"], description="calls a vote to clear server context history")
     async def voteclear(self, ctx: commands.Context):
         guildEmoji = "👆"
-        servMembers = ctx.guild.member_count
-        try:
-            reqVotes: int = self.votesNeeded(servMembers)
-        except Exception as e:
-            print(e)
+        if ctx.guild and ctx.guild.member_count:
+            servMembers = ctx.guild.member_count
+            try:
+                reqVotes = self.votesNeeded(servMembers)
+            except Exception as e:
+                print(e)
+                return
 
         embed = discord.Embed(title="Clear Server History")
         embed.add_field(name="", value=f"React to this message to vote on clearing the bot's server history.\
@@ -264,19 +296,36 @@ class AI(commands.Cog):
     async def on_reaction_add(self, reaction: discord.Reaction, user: discord.User):
         messageID = reaction.message.id
         guildEmoji = "👆"
+        if (guild := reaction.message.guild) and guild.member_count:
+            servMembers = guild.member_count
+            voteThreshold: int = self.votesNeeded(servMembers)
+        else:
+            print("no guild found")
+            return
         
-        servMembers = reaction.message.guild.member_count
+        clearEmbed = discord.Embed(title="")
 
-        voteThreshold: int = self.votesNeeded(servMembers)
-
-        if messageID in self.clearVote and reaction.emoji == guildEmoji and messageID not in self.userClearVoted:
-            if reaction.count == voteThreshold:
-                print("threshold reached")
-                # once vote reaches threshold, this message is ignored
+        # check if special user
+        if user.id in self.bot.specialUsers and messageID in self.clearVote and messageID not in self.userClearVoted:
+            print("special user")
+            if reaction.emoji == self.bot.specialReact:
                 self.userClearVoted.append(messageID)
-                # clear server history
-                await api.clearServerHistory(reaction.message)
-                await reaction.message.channel.send("server history cleared")
+                historyCheck = await api.clearServerHistory(reaction.message)
+                clearEmbed.add_field(name="", value=historyCheck)
+                await reaction.message.channel.send(embed=clearEmbed)
+        else:
+            if messageID in self.clearVote and reaction.emoji == guildEmoji and messageID not in self.userClearVoted:
+                for emo in reaction.message.reactions:
+                    if emo.emoji == "👆":
+                        if emo.count == voteThreshold:
+                            print("threshold reached")
+                            # once vote reaches threshold, this message is ignored
+                            self.userClearVoted.append(messageID)
+                            # clear server history, returns success status along with side effect
+                            # of deleting history
+                            historyCheck = await api.clearServerHistory(reaction.message)
+                            clearEmbed.add_field(name="", value=historyCheck)
+                            await reaction.message.channel.send(embed=clearEmbed)
 
     # forget command
     # clears last N messages from history

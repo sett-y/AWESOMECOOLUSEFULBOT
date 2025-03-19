@@ -4,6 +4,7 @@ passed as argument. this is to preserve the session throughout all the functions
 from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 import re
+import traceback
 
 headers = {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -36,9 +37,14 @@ async def call_scraper(funcStr, url):
 
         #scrapes page data
         async def fetch_page(url, session):
-            async with session.get(url) as response:
-                print("response object created")
-                return await response.text()
+            try:
+                async with session.get(url) as response:
+                    print("response object created")
+                    #print(await response.text())
+                    html = await response.text()
+                    return html
+            except Exception as e:
+                print(e)
 
 
         #scrapes user profile and returns array of match ids
@@ -129,7 +135,8 @@ async def call_scraper(funcStr, url):
             for i in range(0,2):
                 #add radiant or dire to beginning of dict
                 xydata.append(sides[i])
-                x = soup.find_all('tr',class_=f"faction-{sides[i]}")
+                x = soup.find_all('tr',class_=f"faction-{sides[i]}") # class_=f"faction-{sides[i]}"
+                print(f"x value: {x}")
                 xdata = []
                 #therefore y is individual tr elements (individual heroes)
                 for y in x:
@@ -150,7 +157,7 @@ async def call_scraper(funcStr, url):
                         #data
                         ydata = {
                             'name': y.find('a', class_=f'player-{sides[i]}').text.strip(),
-                            'hero': y.find('span', class_=f'color-faction-{sides[i]}').text.strip(),
+                            #'hero': y.find('span', class_=f'color-faction-{sides[i]}').text.strip(),
                             'lane_outcome': y.find('acronym', class_='lane-outcome').text.strip(),
                             'gold': y.find('td', class_='color-stat-gold').text.strip(),
                             'k': y.find_all('td', class_='tf-r')[0].text.strip(),
@@ -161,7 +168,10 @@ async def call_scraper(funcStr, url):
                         }
 
                         xdata.append(ydata)
-                    except: break
+                    except Exception as e:
+                        print(e)
+                        traceback.print_exc()
+                        break # instead of break
                 
                 xydata.append(xdata)
             return xydata

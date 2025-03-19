@@ -4,6 +4,7 @@ import traceback
 from PIL import Image, ImageDraw, ImageFont
 import io
 import random
+from bot import BotType
 import scripts.helpers.db_helpers as db_helpers
 from scripts.helpers.image_helpers import check_image
 import textwrap
@@ -21,12 +22,13 @@ class ConfessionModal(discord.ui.Modal):
         colorChoice = random.choice(colors)
         embed = discord.Embed(title="Anonymous", color=colorChoice)
         
-        msg = self.children[0].value
+        childVal = self.children[0].value # type: ignore
+        msg = childVal
         msg = f"\"{msg}\""
 
         embed.add_field(name="", value=msg)
-        if self.children[1].value:
-            imageAttachment = self.children[1].value
+        if childVal:
+            imageAttachment = childVal
             
             embed.set_image(url=imageAttachment)
         else:
@@ -52,7 +54,7 @@ class ButtonTest(discord.ui.View):
         await interaction.response.send_modal(ConfessionModal(title="balls"))
 
 class Database(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: BotType):
         self.bot = bot
         self.lastMessage = None # 
 
@@ -243,14 +245,17 @@ class Database(commands.Cog):
 
     @commands.command(description="displays user's profile")
     async def profile(self, ctx: commands.Context, member: discord.Member = None):
-        if member is None:
-            avatarUrl = ctx.message.author.avatar.url
-            username = ctx.message.author.name
-            profile_table = f"profile_{ctx.author.id}"
-        else:
+        if member and member.avatar:
             avatarUrl = member.avatar.url
             username = member.name
             profile_table = f"profile_{member.id}"
+        else:
+            if ctx.message and ctx.message.author.avatar:
+                avatarUrl = ctx.message.author.avatar.url
+                username = ctx.message.author.name
+                profile_table = f"profile_{ctx.author.id}"
+            else:
+                print("no user found")
 
         profileQuery = f'''
         SELECT name FROM sqlite_master
@@ -311,6 +316,10 @@ class Database(commands.Cog):
         profile_table = f"profile_{ctx.author.id}"
         attachment_file = await check_image(ctx, url)
         
+        if attachment_file is None:
+            await ctx.send("include a valid url")
+            return
+        
         try:
             await db_helpers.update_column(profile_table, "profile_background", attachment_file, 
                                             self.bot.cur, self.bot.con)
@@ -355,6 +364,9 @@ class Database(commands.Cog):
         embed.add_field(name="", value="Click to send a message:")
         await ctx.send(embed=embed, view=view)
         await ctx.message.delete()
+
+    # .t aww command
+    
 
 
 async def setup(bot):
